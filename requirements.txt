@@ -1,0 +1,8 @@
+requests>=2.31
+lxml>=5.0
+Jinja2>=3.1
+Pillow>=10.0
+trafilatura>=2.0
+youtube-transcript-api>=1.0
+qrcode>=7.4
+pymupdf>=1.24   # προαιρετικό: μόνο για qa.py (PDF → PNG)

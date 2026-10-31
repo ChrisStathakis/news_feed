@@ -1,0 +1,77 @@
+site_name: Η ΗΜΕΡΗΣΙΑ — Οδηγός χρήσης
+site_description: Οδηγός χρήσης της εφαρμογής «Η ΗΜΕΡΗΣΙΑ»
+docs_dir: docs
+site_dir: site
+use_directory_urls: false
+copyright: Η ΗΜΕΡΗΣΙΑ · Οδηγός χρήσης
+
+theme:
+  name: material
+  language: el
+  logo: assets/icon.png
+  favicon: assets/icon.png
+  palette:
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Φωτεινό θέμα
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Σκοτεινό θέμα
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - toc.follow
+    - content.code.copy
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - def_list
+  - footnotes
+  - toc:
+      permalink: true
+      title: Σε αυτή τη σελίδα
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+extra_css:
+  - assets/extra.css
+
+extra_javascript:
+  - assets/offline.js
+  - assets/lightbox.js
+
+nav:
+  - Αρχική: index.md
+  - Εγκατάσταση: egkatastasi.md
+  - Καθημερινή χρήση:
+      - Νέο φύλλο: kathimerini-ekdosi.md
+      - Ανάγνωση: anagnosi.md
+      - Εκτύπωση & PDF: ektyposi-pdf.md
+  - Ρυθμίσεις:
+      - Πηγές: piges.md
+      - Google Trends: trends.md
+      - Αυτόματη έκδοση: programmatismos.md
+      - Όλες οι ρυθμίσεις: rythmiseis.md
+      - Καθαρισμός: katharismos.md
+  - Βοήθεια:
+      - Προβλήματα: provlimata.md
+      - Συχνές ερωτήσεις: faq.md
+      - Συντομεύσεις: syntomeuseis.md

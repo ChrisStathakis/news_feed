@@ -1,0 +1,102 @@
+{
+  "edition": {
+    "name": "Η ΗΜΕΡΗΣΙΑ",
+    "name_en": "THE DAILY",
+    "tagline": "Καθημερινή εφημερίδα · Επιμέλεια αρχείου"
+  },
+  "sections": [
+    {
+      "key": "news",
+      "el": "ΕΙΔΗΣΕΙΣ",
+      "en": "NEWS",
+      "pages": 3
+    },
+    {
+      "key": "politics",
+      "el": "ΠΟΛΙΤΙΚΗ",
+      "en": "POLITICS",
+      "pages": 2
+    },
+    {
+      "key": "sports",
+      "el": "ΑΘΛΗΤΙΚΑ",
+      "en": "SPORTS",
+      "pages": 3
+    },
+    {
+      "key": "economy",
+      "el": "ΟΙΚΟΝΟΜΙΑ",
+      "en": "ECONOMY",
+      "pages": 3
+    },
+    {
+      "key": "tech",
+      "el": "ΤΕΧΝΟΛΟΓΙΑ & GAMING",
+      "en": "TECH & GAMING",
+      "pages": 2
+    },
+    {
+      "key": "culture",
+      "el": "ΠΟΛΙΤΙΣΜΟΣ",
+      "en": "CULTURE",
+      "pages": 2
+    },
+    {
+      "key": "video",
+      "el": "ΒΙΝΤΕΟ & ΚΑΝΑΛΙΑ",
+      "en": "VIDEO",
+      "pages": 2
+    }
+  ],
+  "layout": {
+    "cover_secondary": 3,
+    "first_page": 7,
+    "grid_page": 9,
+    "video_page": 6,
+    "briefs_per_page": 10
+  },
+  "limits": {
+    "lead": 900,
+    "featured": 420,
+    "story": 240,
+    "brief": 90,
+    "video": 190
+  },
+  "language": {
+    "target": "el",
+    "fallback": "original",
+    "translate_english": false
+  },
+  "weights": {},
+  "sources_disabled": [],
+  "theme": {
+    "preset": "light",
+    "font_scale": 1,
+    "photos": "sepia",
+    "paper": "#f4efe1",
+    "paper_deep": "#e9e0cb",
+    "ink": "#1c1a17",
+    "ink_soft": "#49423a",
+    "accent": "#8f2b23",
+    "navy": "#2c3b4c",
+    "serif": "\"Bookman Old Style\",\"Bookman\",\"Georgia\",\"Palatino Linotype\",Georgia,serif",
+    "mono": "\"Courier New\",Courier,monospace"
+  },
+  "runtime": {
+    "python": "",
+    "pdf": false,
+    "pdf_dir": "",
+    "workers_articles": 8,
+    "workers_images": 6,
+    "workers_translate": 6
+  },
+  "schedule": {
+    "enabled": true,
+    "at": "07:00"
+  },
+  "trends": {
+    "enabled": true,
+    "country": "GR",
+    "per_page": 10
+  }
+}

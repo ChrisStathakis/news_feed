@@ -1,0 +1,468 @@
+{
+  "date": "2026-10-29",
+  "generated": "2026-10-29T20:10:06.317273+00:00",
+  "stats": {
+    "total_items": 207,
+    "sections_filled": 17,
+    "sections_total": 17,
+    "avg_score": 49.3,
+    "lead_score": 68.0,
+    "sources_ok": 8
+  },
+  "coverage": {
+    "items": 153,
+    "with_image": 0,
+    "percent": 0
+  },
+  "quality": {
+    "ads_removed": 2,
+    "ad_like": 0,
+    "filtered_ads": 0,
+    "no_body": 20
+  },
+  "sources": {
+    "CNN Greece": {
+      "count": 30,
+      "method": "rss",
+      "note": "rss 30"
+    },
+    "GameSpot": {
+      "count": 30,
+      "method": "rss",
+      "note": "rss 30"
+    },
+    "BBC News": {
+      "count": 90,
+      "method": "rss",
+      "note": "rss 34, rss 27, rss 45"
+    },
+    "Yahoo Finance": {
+      "count": 48,
+      "method": "rss",
+      "note": "rss 19, rss 15, rss 19"
+    },
+    "CNN International": {
+      "count": 97,
+      "method": "rss",
+      "note": "rss 50, rss 29, rss 20"
+    },
+    "IMDb": {
+      "count": 26,
+      "method": "jina",
+      "note": "jina 26"
+    },
+    "NBA": {
+      "count": 25,
+      "method": "jina",
+      "note": "jina κενό, gnews 25"
+    },
+    "EuroLeague": {
+      "count": 25,
+      "method": "jina",
+      "note": "jina blocked, gnews 25"
+    }
+  },
+  "health": {
+    "CNN Greece": {
+      "status": "ok",
+      "failures": 0,
+      "last_ok": "2026-10-29T20:09:18.189312+00:00",
+      "last_method": "rss",
+      "items": 30,
+      "history": [
+        {
+          "at": "2026-10-29T20:09:18.189312+00:00",
+          "items": 30,
+          "method": "rss"
+        }
+      ]
+    },
+    "GameSpot": {
+      "status": "ok",
+      "failures": 0,
+      "last_ok": "2026-10-29T20:09:18.189312+00:00",
+      "last_method": "rss",
+      "items": 30,
+      "history": [
+        {
+          "at": "2026-10-29T20:09:18.189312+00:00",
+          "items": 30,
+          "method": "rss"
+        }
+      ]
+    },
+    "BBC News": {
+      "status": "ok",
+      "failures": 0,
+      "last_ok": "2026-10-29T20:09:18.189312+00:00",
+      "last_method": "rss",
+      "items": 90,
+      "history": [
+        {
+          "at": "2026-10-29T20:09:18.189312+00:00",
+          "items": 90,
+          "method": "rss"
+        }
+      ]
+    },
+    "Yahoo Finance": {
+      "status": "ok",
+      "failures": 0,
+      "last_ok": "2026-10-29T20:09:18.189312+00:00",
+      "last_method": "rss",
+      "items": 48,
+      "history": [
+        {
+          "at": "2026-10-29T20:09:18.189312+00:00",
+          "items": 48,
+          "method": "rss"
+        }
+      ]
+    },
+    "CNN International": {
+      "status": "ok",
+      "failures": 0,
+      "last_ok": "2026-10-29T20:09:18.189312+00:00",
+      "last_method": "rss",
+      "items": 97,
+      "history": [
+        {
+          "at": "2026-10-29T20:09:18.189312+00:00",
+          "items": 97,
+          "method": "rss"
+        }
+      ]
+    },
+    "IMDb": {
+      "status": "ok",
+      "failures": 0,
+      "last_ok": "2026-10-29T20:09:18.189312+00:00",
+      "last_method": "jina",
+      "items": 26,
+      "history": [
+        {
+          "at": "2026-10-29T20:09:18.189312+00:00",
+          "items": 26,
+          "method": "jina"
+        }
+      ]
+    },
+    "NBA": {
+      "status": "ok",
+      "failures": 0,
+      "last_ok": "2026-10-29T20:09:18.189312+00:00",
+      "last_method": "jina",
+      "items": 25,
+      "history": [
+        {
+          "at": "2026-10-29T20:09:18.189312+00:00",
+          "items": 25,
+          "method": "jina"
+        }
+      ]
+    },
+    "EuroLeague": {
+      "status": "ok",
+      "failures": 0,
+      "last_ok": "2026-10-29T20:09:18.189312+00:00",
+      "last_method": "jina",
+      "items": 25,
+      "history": [
+        {
+          "at": "2026-10-29T20:09:18.189312+00:00",
+          "items": 25,
+          "method": "jina"
+        }
+      ]
+    }
+  },
+  "lead": "1661afea7da1",
+  "pages": [
+    {
+      "key": "news",
+      "num": 2,
+      "kind": "first",
+      "featured": "34391098d1eb",
+      "stories": [
+        "25eb5612d74c",
+        "1a45852d8205",
+        "61ec8acf5288",
+        "4738e1b8bbfa",
+        "7985b4b90c56",
+        "952596353dbd"
+      ],
+      "empty": false
+    },
+    {
+      "key": "news",
+      "num": 3,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "977f8dd30b33",
+        "605687ce3839",
+        "06a375be4770",
+        "b72c53bbf189",
+        "e866cec503b1",
+        "6578f01126c8",
+        "0c55135f98ab",
+        "f7b87b960ff9",
+        "b2361a499ce5"
+      ],
+      "empty": false
+    },
+    {
+      "key": "news",
+      "num": 4,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "da467836c428",
+        "5a3615b2f1f7",
+        "7e26c6497aed",
+        "71d049367ba2",
+        "3240fcd99af8",
+        "ee8293185066",
+        "e7261d2f6d07",
+        "18cddcbc1aaa",
+        "0265b425faa6"
+      ],
+      "empty": false
+    },
+    {
+      "key": "news",
+      "num": 5,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "31c3c833b17b",
+        "b9aa0a904036",
+        "4ed046552cce",
+        "712ce36d752d",
+        "9ba866a7ce96",
+        "521a33fef8bf",
+        "7de8ee00d5bf",
+        "a8e79b947814",
+        "9afdc8c10bed"
+      ],
+      "empty": false
+    },
+    {
+      "key": "news",
+      "num": 6,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "415122ec7003",
+        "d8042c4d4eb9",
+        "859159b6d8a3",
+        "5cd0403ffbfe",
+        "2e07530c88b7",
+        "42e4c877cd05",
+        "f0c0aabcf79c",
+        "829d624aa015",
+        "94d975ca5730"
+      ],
+      "empty": false
+    },
+    {
+      "key": "politics",
+      "num": 7,
+      "kind": "first",
+      "featured": "2cce5f800ec9",
+      "stories": [
+        "58a816bff91c",
+        "bd334263b417",
+        "bd9151e8c1cc",
+        "4ce78d4a7241",
+        "5c2fde8792d4",
+        "55380021f66d"
+      ],
+      "empty": false
+    },
+    {
+      "key": "politics",
+      "num": 8,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "5ae4ed958fce",
+        "c0059b293499",
+        "aad937d24d8c",
+        "7464f9bdf1a6",
+        "548516e1aadf",
+        "31a0b507f72c",
+        "afe25979bc49"
+      ],
+      "empty": false
+    },
+    {
+      "key": "sports",
+      "num": 9,
+      "kind": "first",
+      "featured": "04fe457ec813",
+      "stories": [
+        "270c94dfed8a",
+        "08f4762cf83f",
+        "af709136e266",
+        "ce71089bb8d2",
+        "42e1a2007421",
+        "b59cb0e68901"
+      ],
+      "empty": false
+    },
+    {
+      "key": "sports",
+      "num": 10,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "e67913f20adf",
+        "ca7646616163",
+        "70d33a9a0d4b",
+        "5b16e531f5c5",
+        "7dbc48f5d0fb",
+        "1ec9510b85ab",
+        "189f94570617",
+        "7e3a849999c4",
+        "213dc8fff1ae"
+      ],
+      "empty": false
+    },
+    {
+      "key": "economy",
+      "num": 11,
+      "kind": "first",
+      "featured": "a59f7b5ffbb1",
+      "stories": [
+        "692d716dac73",
+        "d8ed6230284a",
+        "a854526f02a2",
+        "ff3be6065edf",
+        "9750530a1708",
+        "3c4b3b21e62d"
+      ],
+      "empty": false
+    },
+    {
+      "key": "economy",
+      "num": 12,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "42a7dcbe14aa",
+        "a862cce857d2",
+        "01ef03c37895",
+        "d27e37db3645",
+        "bf158c4943d8",
+        "f5c1b33501a4",
+        "ec257153af56",
+        "07a8ce847473",
+        "8cc12ec0685b"
+      ],
+      "empty": false
+    },
+    {
+      "key": "economy",
+      "num": 13,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "d1c3ea92cbec",
+        "921c0fde6cd6",
+        "749b8997d2ed",
+        "b0abb50238e9",
+        "c05e71c456fe",
+        "1ac80b13c94d",
+        "95db58c29209",
+        "3c1cbb7f059b",
+        "bcadce3c65ab"
+      ],
+      "empty": false
+    },
+    {
+      "key": "tech",
+      "num": 14,
+      "kind": "first",
+      "featured": "6d5c45737583",
+      "stories": [
+        "dce83a5fa65d",
+        "80e7635ca7db",
+        "26cd3b34f47d",
+        "69490f32fa86",
+        "d326a5742ce6",
+        "08f4f309f3f7"
+      ],
+      "empty": false
+    },
+    {
+      "key": "tech",
+      "num": 15,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "09cecb73aa37",
+        "69b65b99c748",
+        "84560b300a5c",
+        "922fad40c123",
+        "6963e93cb504",
+        "2d8a8566a8f3",
+        "8c90b66f3db0",
+        "3c6e2f57dce0",
+        "50a5177609bf"
+      ],
+      "empty": false
+    },
+    {
+      "key": "tech",
+      "num": 16,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "80d968f4a989",
+        "41b6189c4cb9",
+        "e1e48d510437",
+        "d7ac89ca41d3",
+        "015875fb855a",
+        "7aa386f2d0a6",
+        "4cd2759b2eed",
+        "ceebee70004b",
+        "f00e14836de4"
+      ],
+      "empty": false
+    },
+    {
+      "key": "culture",
+      "num": 17,
+      "kind": "first",
+      "featured": "4b0d555aec72",
+      "stories": [
+        "a901441d25c5",
+        "954748cacf89",
+        "f8df0a964d44",
+        "3771903d31e0",
+        "ca36bbc6044b",
+        "b89a53e54337"
+      ],
+      "empty": false
+    },
+    {
+      "key": "culture",
+      "num": 18,
+      "kind": "grid",
+      "featured": null,
+      "stories": [
+        "69b8b612526f",
+        "b3e8eba3e955",
+        "e159bb3a7672",
+        "70397bbb02dd",
+        "5b0c2860afaa",
+        "a4707ed54ccb",
+        "d3fc01783b3c",
+        "cbfb584292fc",
+        "408810d3491f"
+      ],
+      "empty": false
+    }
+  ]
+}

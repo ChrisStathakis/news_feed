@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ edition_name }} — {{ date_short }}</title>
+<style>{{ css|safe }}</style>
+</head>
+<body class="theme-{{ theme_preset }}{% if fs_large %} fs-large{% endif %}">
+
+{# ------------------------------------------------------------------ macros #}
+{% macro compass() %}
+<svg class="compass" viewBox="0 0 100 100" aria-hidden="true">
+  <circle cx="50" cy="50" r="34" fill="none" stroke="currentColor" stroke-width="1"/>
+  <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width=".5" stroke-dasharray="1 3"/>
+  <path d="M50 14 L56 50 L50 86 L44 50 Z" fill="currentColor" opacity=".75"/>
+  <path d="M14 50 L50 44 L86 50 L50 56 Z" fill="currentColor" opacity=".25"/>
+  <text x="50" y="10" text-anchor="middle" class="compass__n">N</text>
+</svg>
+{% endmacro %}
+
+{% macro map_card() %}
+<div class="card map-card">
+  <div class="card__label">Ο ΧΑΡΤΗΣ ΤΗΣ ΗΜΕΡΑΣ</div>
+  <svg class="map" viewBox="0 0 240 150" aria-hidden="true">
+    <defs>
+      <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M20 0 L0 0 0 20" fill="none" stroke="currentColor" stroke-width=".35" opacity=".45"/>
+      </pattern>
+    </defs>
+    <rect width="240" height="150" fill="url(#grid)" opacity=".9"/>
+    <path d="M18 96 C48 78 62 100 86 88 C110 76 118 92 140 84 C165 75 178 92 204 78"
+          fill="none" stroke="currentColor" stroke-width=".8" stroke-dasharray="3 2" opacity=".7"/>
+    <circle cx="86" cy="88" r="2.6" fill="currentColor"/>
+    <circle cx="170" cy="80" r="2.6" fill="currentColor"/>
+    <path d="M86 88 L170 80" stroke="currentColor" stroke-width=".6" opacity=".5"/>
+    <text x="92" y="84" class="map__pin">ΑΘΗΝΑ</text>
+    <text x="176" y="76" class="map__pin">ΒΡΥΞΕΛΛΕΣ</text>
+    <g opacity=".5" transform="translate(198,112) scale(.42)">
+      <circle cx="50" cy="50" r="34" fill="none" stroke="currentColor"/>
+      <path d="M50 14 L56 50 L50 86 L44 50 Z" fill="currentColor"/>
+    </g>
+  </svg>
+  <div class="map-card__foot">
+    <span>{{ date_caps }}</span>
+    <span class="map-card__ref">ΧΑΡΤΗΣ 1:1.000.000</span>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro plate(label='ΑΡΧΕΙΟΝ', hint='ΦΩΤΟΓΡΑΦΙΑ ΔΙΑΘΕΣΙΜΗ ΣΤΗΝ ΠΗΓΗ') %}
+<div class="plate">
+  <div class="plate__inner">
+    {{ compass() }}
+    <div class="plate__label">{{ label }}</div>
+    <div class="plate__hint">{{ hint }}</div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro orig(item, cls='') %}
+{% if item.title_en %}<div class="orig {{ cls }}">{{ item.title_en }}</div>{% endif %}
+{% endmacro %}
+
+{% macro badge(item) %}
+{% if item.badge %}<span class="badge">{{ item.badge }}</span>{% endif %}
+{% endmacro %}
+
+{% macro byline(item) %}
+<div class="byline">
+  <span class="byline__src">{{ item.source_name }}</span>
+  <span>{{ item.local_time }}</span>
+  {% if item.source_count > 1 %}<span class="byline__more">+{{ item.source_count - 1 }} πηγή</span>{% endif %}
+  {{ badge(item) }}
+</div>
+{% endmacro %}
+
+{% macro section_head(p, kind='') %}
+<header class="section-head {{ kind }}">
+  <div class="section-head__brand">
+    <span class="section-head__paper">{{ edition_name }}</span>
+    <span class="section-head__date">{{ date_short }}</span>
+  </div>
+  <h2 class="section-title">{{ p.label_el }}<span>/ {{ p.label_en }}</span></h2>
+  <div class="section-head__page">ΣΕΛ. {{ p.num }}<em>/{{ total_pages }}</em></div>
+</header>
+{% endmacro %}
+
+{% macro section_rule(p) %}
+<div class="section-rule">
+  <span class="section-rule__name">{{ p.label_el }}</span>
+  <span class="section-rule__cont">ΣΥΝΕΧΕΙΑ ΑΠΟ ΣΕΛ. {{ p.num - p.section_page + 1 }}</span>
+  <span class="section-rule__page">{{ p.num }}/{{ total_pages }}</span>
+</div>
+{% endmacro %}
+
+{% macro foot(left='') %}
+<footer class="page-foot">
+  <span>{{ edition_name }} · {{ date_short }}</span>
+  <span>{{ left }}</span>
+  <span>ΦΥΛΛΟ {{ issue }}</span>
+</footer>
+{% endmacro %}
+
+{% macro story_card(it, cls='') %}
+<article class="story-card {{ cls }}">
+  <div class="story-card__media">
+    {% if it.img %}
+    <img src="{{ it.img }}" alt="{{ it.title_el }}">
+    {% else %}
+    <div class="story-card__plate"><span>ΑΡΧΕΙΟΝ</span><small>{{ it.source_name }}</small></div>
+    {% endif %}
+  </div>
+  <div class="kicker">{{ it.local_time }} · {{ it.source_name }} {{ badge(it) }}</div>
+  <h3 class="story-card__title"><a href="{{ it.url }}">{{ it.title_el }}</a></h3>
+  {{ orig(it, 'orig--sm') }}
+  {% for par in it.body[:2] %}
+  <p>{{ par|truncate_words(34) }}</p>
+  {% endfor %}
+  {% if not it.body %}<p class="story-card__more"><a href="{{ it.url }}">Πλήρες ρεπορτάζ: {{ it.source_name }} →</a></p>{% endif %}
+</article>
+{% endmacro %}
+
+{% macro video_card(v) %}
+<article class="video-card">
+  <div class="story-card__media video-card__media">
+    {% if v.img %}<img src="{{ v.img }}" alt="{{ v.title_el }}">{% else %}{{ plate('ΒΙΝΤΕΟ', 'ΔΙΑΘΕΣΙΜΟ ΣΤΟ ΚΑΝΑΛΙ') }}{% endif %}
+    <span class="video-card__play">▶</span>
+  </div>
+  <div class="kicker">{{ v.local_time }} · {{ v.channel or v.source_name }} {{ badge(v) }}</div>
+  <h3 class="story-card__title story-card__title--video"><a href="{{ v.url }}">{{ v.title_el }}</a></h3>
+  {{ orig(v, 'orig--sm') }}
+  {% for par in v.body[:3] %}
+  <p>{{ par|truncate_words(42) }}</p>
+  {% endfor %}
+  <div class="video-card__foot">
+    <span class="video-card__link">youtube.com/watch?v={{ v.video_id }}</span>
+    {% if v.qr %}<img class="qr" src="assets/qr/{{ v.qr }}" alt="QR">{% endif %}
+  </div>
+</article>
+{% endmacro %}
+
+<!-- ================================================= ΣΕΛΙΔΕΣ GOOGLE TRENDS -->
+{% for t in trends %}
+<section class="page page--trends">
+  <header class="trends-head">
+    <div class="trends-head__top">
+      <span class="trends-kicker">GOOGLE TRENDS · ΤΕΛΕΥΤΑΙΕΣ 24 ΩΡΕΣ</span>
+      <span class="trends-head__page">ΣΕΛ. {{ t.num }}<em>/{{ total_pages }}</em></span>
+    </div>
+    <h1 class="trends-title">ΔΗΜΟΦΙΛΕΙΣ<br>ΑΝΑΖΗΤΗΣΕΙΣ</h1>
+    <div class="trends-scope">
+      <span class="trends-scope__label">{{ t.scope_el }}</span>
+      <span class="trends-scope__meta">24ΩΡΟ · {{ t.rows|length }} ΚΟΡΥΦΑΙΟΙ ΟΡΟΙ</span>
+    </div>
+  </header>
+
+  <ol class="trends-list">
+    {% for it in t.rows %}
+    <li class="trend{% if it.image %} trend--img{% endif %}">
+      <span class="trend__rank">{{ it.rank }}</span>
+      <div class="trend__body">
+        <h3 class="trend__term">{{ it.term }}</h3>
+        <div class="trend__meta">
+          {% if it.traffic %}<b>{{ it.traffic }}</b> αναζητήσεις{% endif %}{% if it.time %} · {{ it.time }}{% endif %}{% if it.source %} · {{ it.source }}{% endif %}
+        </div>
+        {% if it.headline %}
+        <a class="trend__link" href="{{ it.headline_url }}">{{ it.headline }}</a>
+        {% endif %}
+      </div>
+      {% if it.image %}<img class="trend__img" src="{{ it.image }}" alt="">{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+
+  {{ foot(t.scope_el ~ ' · GOOGLE TRENDS') }}
+</section>
+{% endfor %}
+
+<!-- ============================================================ ΣΕΛΙΔΑ 1 -->
+<section class="page page--cover">
+  <div class="topbar">
+    <div class="topbar__cell">
+      <small>ΤΜΗΜΑ ΣΥΝΤΑΞΗΣ</small>
+      <b>ΓΡΑΦΕΙΟ ΕΚΔΟΣΗΣ</b>
+      <small>ΑΘΗΝΑ · {{ year }}</small>
+    </div>
+    <div class="topbar__cell topbar__cell--center">
+      <div class="masthead">{{ edition_name }}</div>
+      <div class="masthead__sub">{{ edition_name_en }} · ΑΝΕΞΑΡΤΗΤΗ ΕΚΔΟΣΗ</div>
+    </div>
+    <div class="topbar__cell topbar__cell--right">
+      <small>ΑΡ. ΦΥΛΛΟΥ</small>
+      <b>{{ issue }}</b>
+      <small>{{ date_short }}</small>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <span class="nav__item nav__item--active">ΠΡΩΤΗ ΣΕΛΙΔΑ</span>
+    {% for s in sections %}<span class="nav__item">{{ s.el }}</span>{% endfor %}
+    <span class="nav__item nav__item--end">ΣΥΝΤΟΜΑ</span>
+  </nav>
+
+  <header class="cover-head">
+    <div class="date-line"><span>{{ date_long }}</span><em>ΕΚΔΟΣΗ {{ generated }}</em></div>
+    {% if lead %}
+    <h1 class="cover-title">{{ lead.title_el }}</h1>
+    {{ orig(lead, 'cover-title-en') }}
+    <p class="cover-stand">{{ lead.body[0]|truncate_words(30) if lead.body else '' }}</p>
+    {% else %}
+    <h1 class="cover-title">Το φύλλο της ημέρας</h1>
+    <p class="cover-stand">Δεν κατέστη δυνατή η συλλογή ειδήσεων για σήμερα.</p>
+    {% endif %}
+  </header>
+
+  <div class="cover-grid">
+    <aside class="cover-col cover-col--left">
+      {{ map_card() }}
+
+      <div class="card time-card">
+        <div class="card__label">ΩΡΑ ΕΚΔΟΣΗΣ</div>
+        <div class="time-card__time">{{ generated }}</div>
+        <div class="time-card__meta">{{ date_long }}</div>
+      </div>
+
+      <div class="card order-card">
+        <div class="card__label">ΕΝΤΟΛΗ ΣΥΝΤΑΞΗΣ</div>
+        <p>Το φύλλο συντάσσεται αυτόματα από {{ stats.sources_ok }} ενεργές πηγές. Κάθε θέμα φέρει την προέλευσή του.</p>
+        <div class="order-card__rows">
+          <div><span>Θέματα</span><b>{{ numbers.total }}</b></div>
+          <div><span>Σελίδες</span><b>{{ total_pages }}</b></div>
+          <div><span>Μέση βαρύτητα</span><b>{{ stats.avg_score }}</b></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="cover-col cover-col--center">
+      {% if lead %}
+        {% if lead.img_large or lead.img %}
+        <figure class="figure">
+          <img src="{{ lead.img_large or lead.img }}" alt="{{ lead.title_el }}">
+        </figure>
+        {% else %}
+        {{ plate() }}
+        {% endif %}
+        <div class="figure__cap figure__cap--lead"><b>Φωτογραφία: {{ lead.source_name }}</b> · {{ date_long }}</div>
+      {% endif %}
+
+      <div class="secondary">
+        {% for s in secondary %}
+        <article class="sec-story">
+          <div class="kicker">{{ s.local_time }} · {{ s.source_name }} {{ badge(s) }}</div>
+          <h3><a href="{{ s.url }}">{{ s.title_el }}</a></h3>
+          {{ orig(s) }}
+          {% if s.body %}<p>{{ s.body[0]|truncate_words(26) }}</p>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+
+    <aside class="cover-col cover-col--right">
+      <div class="file-card">
+        <div class="file-card__head">
+          <span>ΦΑΚΕΛΟΣ</span>
+          <span>{{ month_short }} {{ day_num }} {{ year }}</span>
+        </div>
+        {% if lead %}
+        <div class="file-card__title">{{ lead.title_el|truncate_words(9) }}</div>
+        <div class="file-card__score">
+          <span>ΒΑΡΥΤΗΤΑ</span><b>{{ lead.score }}</b>
+        </div>
+        <div class="file-card__sources">
+          {% for name in lead.source_names %}<span>{{ name }}</span>{% endfor %}
+        </div>
+        <a class="file-card__open" href="{{ lead.url }}">ΑΝΟΙΞΕ ΤΟ ΑΡΧΕΙΟ →</a>
+        {% endif %}
+        <div class="file-card__index">
+          <div class="file-card__index-title">ΕΝΤΟΣ ΤΟΥ ΦΥΛΛΟΥ</div>
+          {% for s in sections %}
+          <div class="file-card__row"><span>{{ s.el }}</span><b>{{ s.num }}</b></div>
+          {% endfor %}
+          <div class="file-card__row"><span>ΣΥΝΤΟΜΑ &amp; ΠΗΓΕΣ</span><b>{{ briefs_page }}</b></div>
+        </div>
+      </div>
+
+      <div class="stamp stamp--double">ΕΛΗΦΘΗ<br>{{ date_short }}<br>ΠΡΩΤΗ ΕΚΔΟΣΗ</div>
+
+      <div class="card notes-card">
+        <div class="card__label">ΕΠΙ ΣΤΟΙΧΕΙΟΥ</div>
+        <ul class="notes">
+          {% for t in today_items[:3] %}
+          <li><span>{{ t.local_time }}</span>{{ t.title_el|truncate_words(11) }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <div class="today-strip">
+    <div class="today-strip__label">ΣΗΜΕΡΑ</div>
+    <div class="today-strip__items">
+      {% for t in today_items %}
+      <div class="today-item">
+        <span class="today-item__time">{{ t.local_time }}</span>
+        <span class="today-item__title">{{ t.title_el|truncate_words(9) }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {{ foot('ΠΡΩΤΗ ΣΕΛΙΔΑ') }}
+</section>
+
+<!-- ===================================================== ΣΕΛΙΔΕΣ 2-18 -->
+{% for p in pages %}
+{% if p.kind == 'first' %}
+<section class="page page--section">
+  {{ section_head(p) }}
+
+  {% if p.empty %}
+  <div class="empty">
+    {{ plate('ΧΩΡΙΣ ΚΑΤΑΧΩΡΗΣΗ') }}
+    <h3>Δεν υπάρχουν σημερινές ειδήσεις σε αυτή την ενότητα</h3>
+    <p>Η ενότητα διατηρείται σταθερή. Μόλις οι πηγές επιστρέψουν περιεχόμενο, η σελίδα συμπληρώνεται αυτόματα.</p>
+  </div>
+  {% else %}
+  {% set f = p.featured %}
+  <div class="lead-story">
+    <div class="lead-story__media">
+      {% if f.img_large or f.img %}
+      <img src="{{ f.img_large or f.img }}" alt="{{ f.title_el }}">
+      {% else %}
+      {{ plate() }}
+      {% endif %}
+      <div class="lead-story__cap">{{ f.source_name }} · {{ f.local_time }}</div>
+    </div>
+    <div class="lead-story__text">
+      <h1 class="sec-headline"><a href="{{ f.url }}">{{ f.title_el }}</a></h1>
+      {{ orig(f) }}
+      {% for par in f.body[:5] %}
+      <p class="sec-lead">{{ par }}</p>
+      {% endfor %}
+      {% if not f.body %}<p class="sec-lead">{{ f.summary }}</p>{% endif %}
+      {{ byline(f) }}
+    </div>
+  </div>
+
+  {% if p.stories %}
+  <div class="section-grid section-grid--first">
+    {% for it in p.stories[:7] %}
+    {{ story_card(it) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+  {{ foot(p.label_el) }}
+</section>
+
+{% elif p.kind == 'grid' %}
+<section class="page page--section page--grid">
+  {{ section_rule(p) }}
+
+  {% if p.stories %}
+  <div class="section-grid section-grid--dense">
+    {% for it in p.stories %}
+    {{ story_card(it) }}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <h3>Δεν υπάρχουν άλλα θέματα σε αυτή την ενότητα</h3>
+    <p>Η συνέχεια της ενότητας μένει κενή σήμερα· η σειρά των ενοτήτων δεν αλλάζει.</p>
+  </div>
+  {% endif %}
+
+  {{ foot(p.label_el) }}
+</section>
+
+{% elif p.kind == 'video' %}
+<section class="page page--section page--video">
+  {{ section_head(p) if p.section_page == 1 else section_rule(p) }}
+
+  {% if p.stories %}
+  <div class="video-grid{% if p.stories|length <= 3 %} video-grid--few{% elif p.stories|length > 6 %} video-grid--tight{% endif %}">
+    {% for v in p.stories %}
+    {{ video_card(v) }}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    {{ plate('ΧΩΡΙΣ ΒΙΝΤΕΟ') }}
+    <h3>Δεν υπάρχουν νέα βίντεο σήμερα</h3>
+    <p>Τα κανάλια ελέγχονται κάθε μέρα· μόλις ανέβει νέο βίντεο, η ενότητα γεμίζει αυτόματα.</p>
+  </div>
+  {% endif %}
+
+  {{ foot('ΒΙΝΤΕΟ & ΚΑΝΑΛΙΑ') }}
+</section>
+{% endif %}
+{% endfor %}
+
+<!-- ============================================================ ΣΕΛΙΔΑ 19 -->
+<section class="page page--briefs">
+  {{ section_head({'label_el': 'ΣΥΝΤΟΜΑ & ΑΡΙΘΜΟΙ', 'label_en': 'BRIEFS & FIGURES', 'num': briefs_page}) }}
+
+  <div class="briefs-grid">
+    {% for b in briefs %}
+    <article class="brief">
+      <div class="brief__top">
+        <span class="brief__time">{{ b.local_time }}</span>
+        <span class="brief__src">{{ b.source_name }} {{ badge(b) }}</span>
+      </div>
+      <h4><a href="{{ b.url }}">{{ b.title_el }}</a></h4>
+      {{ orig(b, 'orig--sm') }}
+      {% if b.body %}<p>{{ b.body[0]|truncate_words(26) }}</p>{% endif %}
+    </article>
+    {% endfor %}
+    {% if not briefs %}
+    <div class="empty empty--sm"><h3>Δεν υπάρχουν σύντομα σήμερα</h3></div>
+    {% endif %}
+  </div>
+
+  <div class="figures">
+    <div class="figures__title">ΤΟ ΦΥΛΛΟ ΜΕ ΑΡΙΘΜΟΥΣ</div>
+    <div class="figures__grid">
+      <div class="figures__cell"><span>Θέματα</span><b>{{ numbers.total }}</b></div>
+      <div class="figures__cell"><span>Πηγές</span><b>{{ numbers.sources }}</b></div>
+      <div class="figures__cell"><span>Μέση βαρύτητα</span><b>{{ numbers.avg_score }}</b></div>
+      <div class="figures__cell"><span>Χρονικό εύρος</span><b>{{ numbers.first_time }}–{{ numbers.last_time }}</b></div>
+      <div class="figures__cell"><span>Με φωτογραφία</span><b>{{ numbers.with_image }}</b></div>
+      <div class="figures__cell"><span>Βίντεο</span><b>{{ numbers.video }}</b></div>
+    </div>
+    <div class="figures__rows">
+      {% for row in numbers.rows %}
+      <div class="figures__row"><span>{{ row.el }}</span><b>{{ row.count }}</b></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {{ foot('ΣΥΝΤΟΜΑ & ΑΡΙΘΜΟΙ') }}
+</section>
+
+<!-- ============================================================ ΣΕΛΙΔΑ 20 -->
+<section class="page page--sources">
+  {{ section_head({'label_el': 'ΠΗΓΕΣ & ΣΤΟΙΧΕΙΑ', 'label_en': 'SOURCES & COLOPHON', 'num': sources_page}) }}
+
+  <div class="status">
+    <h3 class="status__title">ΚΑΤΑΣΤΑΣΗ ΠΗΓΩΝ</h3>
+    <div class="status__grid">
+      {% for s in sources %}
+      <div class="status__row">
+        <span class="dot dot--{{ s.status }}"></span>
+        <span class="status__name">{{ s.name }}</span>
+        <span class="status__method">{{ s.method }}</span>
+        <span class="status__items">{{ s.items }} θέματα</span>
+        <span class="status__time">{{ s.last_ok }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="index">
+    <h3 class="status__title">ΕΥΡΕΤΗΡΙΟ ΦΥΛΛΟΥ</h3>
+    <div class="index__cols">
+      {% for e in index %}
+      <div class="index__item">
+        <span class="index__num">{{ "%02d"|format(e.num) }}</span>{{ e.title|truncate_words(9) }}
+        <span class="index__src">{{ e.source }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="colophon">
+    <div class="colophon__col">
+      <b>{{ edition_name }}</b> · {{ edition_name_en }}<br>
+      Φύλλο {{ issue }} · {{ date_long }}<br>
+      Σύνθεση: αυτόματη σύνταξη {{ generated }} (Europe/Athens)<br>
+      Σελίδες: {{ total_pages }} · Θέματα: {{ numbers.total }}
+    </div>
+    <div class="colophon__col">
+      Τα κείμενα αποδίδονται περιληπτικά και μεταφράζονται στα ελληνικά.<br>
+      Η πλήρης είδηση ανήκει στην πηγή που αναφέρεται σε κάθε θέμα.<br>
+      Οι φωτογραφίες προέρχονται από τις σελίδες των πηγών.<br>
+      Τα βίντεο ανήκουν στους δημιουργούς τους.
+    </div>
+    <div class="colophon__col colophon__col--right">
+      <span class="stamp stamp--sm">ΑΡΧΕΙΟΝ<br>ΗΜΕΡΑΣ</span>
+    </div>
+  </div>
+
+  {{ foot('ΠΗΓΕΣ & ΣΤΟΙΧΕΙΑ') }}
+</section>
+
+</body>
+</html>
+

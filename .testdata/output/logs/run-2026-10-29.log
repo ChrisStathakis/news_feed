@@ -1,0 +1,28 @@
+22:08:25  INFO    run       Η ΗΜΕΡΗΣΙΑ · φύλλο 2026-10-29 · 20 σελίδες
+22:08:59  INFO    run       Η ΗΜΕΡΗΣΙΑ · φύλλο 2026-10-29 · 20 σελίδες
+22:08:59  INFO    collect   CNN Greece          30  [rss] rss 30
+22:09:00  INFO    collect   GameSpot            30  [rss] rss 30
+22:09:00  INFO    collect   BBC News            90  [rss] rss 34, rss 27, rss 45
+22:09:00  INFO    collect   Yahoo Finance       48  [rss] rss 19, rss 15, rss 19
+22:09:00  INFO    collect   CNN International   97  [rss] rss 50, rss 29, rss 20
+22:09:08  INFO    collect   IMDb                26  [jina] jina 26
+22:09:11  INFO    collect   NBA                 25  [jina] jina κενό, gnews 25
+22:09:18  INFO    collect   EuroLeague          25  [jina] jina blocked, gnews 25
+22:09:18  INFO    run       Συλλογή: 371 ακατέργαστα θέματα σε 18.8s
+22:09:18  INFO    run       Μετά τον καθαρισμό/dedupe: 207 θέματα · 2 διαφημίσεις εκτός
+22:09:54  INFO    articles  Άρθρα: 69/70 ανακτήθηκε
+22:09:54  INFO    run       Σελιδοποίηση: 20 σελίδες · 153 θέματα
+22:09:57  WARNING trafilatura.core discarding data: https://news.google.com/rss/articles/CBMijwFBVV95cUxPeGNmeThuWU5ZNC1JOEVmbF9XQk9aYnh2d2R1dzBXQVV0QXU0N3ltY3lGV3J4OEU5bUowdmFTQUNTQUV5UmZvZVZ6N1Q0UkhEcG5EYWNLanN1QVdxemVmaXpkbVdyX2RwODhxWEMzdm1MMkY0SW1mNjVzcjNKcTFKY1NjbFUtUmlHNHNyY1VhVQ
+22:09:57  WARNING trafilatura.core discarding data: https://news.google.com/rss/articles/CBMirwFBVV95cUxPVUZTWjkxN3BOaDZCcVdJVDV2eW1oNUFwZW5IUXhsczF6SmlLZnUyQnN2M0l4RlNoSzlpakpuNVk5WE1vb3V2aEVMa0N3M0JYN1h5UWlhWlJkRzZUeWZ6dVlFQ1J2Tl96a3QtUU9DSmUtTzVMZmRKLTNzZnZhMm54T3RoWVRvQ3B1YnhGSm83MVJucEY2Vm5kV2Q3YUFDWTZCZHlneDNkVU12QnNwckFn
+22:09:57  WARNING trafilatura.core discarding data: https://news.google.com/rss/articles/CBMif0FVX3lxTE1KNjF1SDd6R1lTdVoxZkJwb1FRZ2R4Zl85REpwV3c0cVVObFRDMTY5MzdfSTEwSlRKWHpTdVh6cjVwc2VrOWgxU2t4MDVCTlU3cExBbnE1RmdhY3RoMGxJZ2JHYTZEN05LcUdrdTZLRmJMSDJ5NHctRXl4dDkwT0E
+22:09:58  WARNING trafilatura.core discarding data: https://news.google.com/rss/articles/CBMiZEFVX3lxTE5rdGVfbjJVQVBlS3VxVDZYWUIwZ0dEQzZsWWwtcG5mbXdMWnBOMzhiNzZ6dW1DRXczaV9HZHZaRHpWNVpaRms5MHJjX1loUDh0ZEw3NFoxczZvc1BoSE9sT3lQZEE
+22:09:58  WARNING trafilatura.core discarding data: https://news.google.com/rss/articles/CBMingFBVV95cUxOcEdaTlhnTUlfTzMwelZ4QTFWb01kcGFSVC1icVNqU3B5VXhrVWx1R2NlZzN2cTZjMTViUVlmX3lHa2tFdVBsZVFBclozLUFuN0hqcDV6MUpRNmp2czFRVHZERGJOU3lvTzFuSFhndDRIVVhPLXlVTmhiOVBUTXdqejluREVmeFE2cjVvMlNMcEc3Z0dWOXQ3bW9vUFZGZw
+22:09:59  WARNING trafilatura.core discarding data: https://news.google.com/rss/articles/CBMimAFBVV95cUxPaFZ6WXozS1F3R3dJbkNveFlBOWE3OEx2S0xra1EtaFZvbnpzVnJzdmhUdDI3dFc1VDlTUi15ZDI4SG5ZamNPbnBOZm5KWWZ4b29zMS1NRjZXQWllZ3F2ZlVXVzdiektQX0VSVllIQWw2M0MwWVhMQ3RhTGtFR3ByZGZhYzRIWnl3b3NZVVEwN3htdksycm1YRw
+22:09:59  WARNING trafilatura.core discarding data: https://news.google.com/rss/articles/CBMif0FVX3lxTE9LeU1lSFNFUFZFTUx4WXlRRmZtcHB1RGRoc1hocXBIVWF3am9KNVMtOFJuanlFS1ItRUVXTFdBRGN6U2swOVBGSk5mZ2xMTGFSay1zNHE2eDI1R3JwMVFzakdhR2wyR1UyNnB3WHFMR1pheElZN0tIOGJ4dGVOcDg
+22:09:59  WARNING trafilatura.core discarding data: https://news.google.com/rss/articles/CBMiiAFBVV95cUxPb1BoY0F3YzNXM2h1elJJaF9ac1FUMlBOR04tWVc3a1FjaWpHakllT3VGVmptVE9HNWVUUmNGWjNIbHRHaXNTUnFheXNfWUhmRGJKRDRqWXpCdzZJd0NCWVNJV01ZaFAwRktEdzB3VzNGYVNQS1Jld2w1VEZmN1QwUFNSNlQ2T0tl
+22:09:59  WARNING trafilatura.core discarding data: https://news.google.com/rss/articles/CBMihwFBVV95cUxPdEhiNG9qQVRMazY2cVg3WnhWZ3hQSWNPalZtdUNLX18yRk5Fek1ZU2MycHFKYk1PM0FxT3Q0cXZTbHF2LXRkSGVzWS1wZ1hhTTZLdmhzaEo4YUdOZGFlbVpTZ256M2d1UVA1ZjZKZGJYYnFqeTlHR09KYUd6UWVZYll4cnc1bzA
+22:09:59  WARNING trafilatura.core discarding data: https://news.google.com/rss/articles/CBMifEFVX3lxTE9zTk5FN2IyWWxSR1BXR01MajJnTmFtc3d5MkZCTWUwNGNVQ2xmTWlsNUtPOHp1S2J1cUFRV1BPeG5aMHZKcnFnSVE4UFBjVE5HYy1KTTROclhpYmdCeldwYnhRNUR6Q1pfNnByYXBmZTJrOW9RT28yRHpxRGE
+22:10:06  INFO    articles  Άρθρα: 64/84 ανακτήθηκε
+22:10:06  INFO    run       Άρθρα: 133/153 με κείμενο σε 11.3s
+22:10:06  INFO    run       HTML: D:\projects\news_feed\.testdata\output\2026-10-29\efimerida-2026-10-29.html
+22:10:06  INFO    run       Ολοκληρώθηκε σε 66.9s · D:\projects\news_feed\.testdata\output\2026-10-29\efimerida-2026-10-29.html

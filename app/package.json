@@ -1,0 +1,63 @@
+{
+  "name": "hmerisia-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Η ΗΜΕΡΗΣΙΑ — επιτράπεζια εφαρμογή για την αυτόματη εφημερίδα",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pipeline": "powershell -ExecutionPolicy Bypass -File build-pipeline.ps1",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "gr.hmerisia.desktop",
+    "productName": "Hmerisia",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "styles.css",
+      "renderer.js",
+      "assets/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../pipeline-dist/hmerisia",
+        "to": "pipeline"
+      },
+      {
+        "from": "../sites.txt",
+        "to": "seeds/sites.txt"
+      },
+      {
+        "from": "../settings.json",
+        "to": "seeds/settings.json"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Hmerisia-Setup-${version}.exe",
+      "shortcutName": "Η ΗΜΕΡΗΣΙΑ",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
+    }
+  }
+}

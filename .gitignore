@@ -1,0 +1,9 @@
+# Electron build output (contains .exe files >100 MB - GitHub rejects any file over 100 MB)
+app/dist/
+
+# Dependencies (restorable with `npm install`; contains electron.exe ~200 MB)
+node_modules/
+
+# Python bytecode (.pyc only - .pyd files are real PyInstaller binaries, keep them)
+__pycache__/
+*.pyc

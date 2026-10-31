@@ -1,0 +1,114 @@
+{
+  "CNN Greece": {
+    "status": "ok",
+    "failures": 0,
+    "last_ok": "2026-10-29T20:09:18.189312+00:00",
+    "last_method": "rss",
+    "items": 30,
+    "history": [
+      {
+        "at": "2026-10-29T20:09:18.189312+00:00",
+        "items": 30,
+        "method": "rss"
+      }
+    ]
+  },
+  "GameSpot": {
+    "status": "ok",
+    "failures": 0,
+    "last_ok": "2026-10-29T20:09:18.189312+00:00",
+    "last_method": "rss",
+    "items": 30,
+    "history": [
+      {
+        "at": "2026-10-29T20:09:18.189312+00:00",
+        "items": 30,
+        "method": "rss"
+      }
+    ]
+  },
+  "BBC News": {
+    "status": "ok",
+    "failures": 0,
+    "last_ok": "2026-10-29T20:09:18.189312+00:00",
+    "last_method": "rss",
+    "items": 90,
+    "history": [
+      {
+        "at": "2026-10-29T20:09:18.189312+00:00",
+        "items": 90,
+        "method": "rss"
+      }
+    ]
+  },
+  "Yahoo Finance": {
+    "status": "ok",
+    "failures": 0,
+    "last_ok": "2026-10-29T20:09:18.189312+00:00",
+    "last_method": "rss",
+    "items": 48,
+    "history": [
+      {
+        "at": "2026-10-29T20:09:18.189312+00:00",
+        "items": 48,
+        "method": "rss"
+      }
+    ]
+  },
+  "CNN International": {
+    "status": "ok",
+    "failures": 0,
+    "last_ok": "2026-10-29T20:09:18.189312+00:00",
+    "last_method": "rss",
+    "items": 97,
+    "history": [
+      {
+        "at": "2026-10-29T20:09:18.189312+00:00",
+        "items": 97,
+        "method": "rss"
+      }
+    ]
+  },
+  "IMDb": {
+    "status": "ok",
+    "failures": 0,
+    "last_ok": "2026-10-29T20:09:18.189312+00:00",
+    "last_method": "jina",
+    "items": 26,
+    "history": [
+      {
+        "at": "2026-10-29T20:09:18.189312+00:00",
+        "items": 26,
+        "method": "jina"
+      }
+    ]
+  },
+  "NBA": {
+    "status": "ok",
+    "failures": 0,
+    "last_ok": "2026-10-29T20:09:18.189312+00:00",
+    "last_method": "jina",
+    "items": 25,
+    "history": [
+      {
+        "at": "2026-10-29T20:09:18.189312+00:00",
+        "items": 25,
+        "method": "jina"
+      }
+    ]
+  },
+  "EuroLeague": {
+    "status": "ok",
+    "failures": 0,
+    "last_ok": "2026-10-29T20:09:18.189312+00:00",
+    "last_method": "jina",
+    "items": 25,
+    "history": [
+      {
+        "at": "2026-10-29T20:09:18.189312+00:00",
+        "items": 25,
+        "method": "jina"
+      }
+    ]
+  }
+}

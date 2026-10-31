@@ -1,0 +1,43 @@
+const { contextBridge, ipcRenderer } = require("electron");
+
+contextBridge.exposeInMainWorld("api", {
+  info: () => ipcRenderer.invoke("app:info"),
+  run: (opts) => ipcRenderer.invoke("run:start", opts),
+  stopRun: () => ipcRenderer.invoke("run:stop"),
+  onRunEvent: (cb) => ipcRenderer.on("run:event", (_e, data) => cb(data)),
+  onRunLog: (cb) => ipcRenderer.on("run:log", (_e, data) => cb(data)),
+  onRunEnd: (cb) => ipcRenderer.on("run:end", (_e, data) => cb(data)),
+
+  history: () => ipcRenderer.invoke("history:list"),
+  cleanupPreview: (payload) => ipcRenderer.invoke("history:preview", payload),
+  cleanupRun: (payload) => ipcRenderer.invoke("history:cleanup", payload),
+  deleteEdition: (date) => ipcRenderer.invoke("edition:delete", date),
+  editionUrl: (date) => ipcRenderer.invoke("edition:url", date),
+  openExternal: (date) => ipcRenderer.invoke("edition:openExternal", date),
+  exportPdf: (date) => ipcRenderer.invoke("edition:exportPdf", date),
+
+  sources: () => ipcRenderer.invoke("sources:list"),
+  addSource: (url) => ipcRenderer.invoke("sources:add", url),
+  removeSource: (url) => ipcRenderer.invoke("sources:remove", url),
+  setWeight: (host, weight) => ipcRenderer.invoke("sources:weight", { host, weight }),
+  toggleSource: (payload) => ipcRenderer.invoke("sources:toggle", payload),
+  testSource: (url) => ipcRenderer.invoke("sources:test", url),
+
+  settings: () => ipcRenderer.invoke("settings:get"),
+  saveSettings: (data) => ipcRenderer.invoke("settings:save", data),
+  uiGet: () => ipcRenderer.invoke("ui:get"),
+  uiSet: (patch) => ipcRenderer.invoke("ui:set", patch),
+  pickFolder: (current) => ipcRenderer.invoke("dialog:pickFolder", current),
+  openPath: (p) => ipcRenderer.invoke("shell:openPath", p),
+  openUrlExternal: (url) => ipcRenderer.invoke("shell:openExternal", url),
+  copyText: (text) => ipcRenderer.invoke("clipboard:write", text),
+  setFullscreen: (on) => ipcRenderer.invoke("window:fullscreen", on),
+  onFullscreenChanged: (cb) => ipcRenderer.on("window:fullscreen-changed", (_e, on) => cb(on)),
+  printPreview: (payload) => ipcRenderer.invoke("print:preview", payload),
+  onPrintRequest: (cb) => ipcRenderer.on("print:request", () => cb()),
+  onCopyRequest: (cb) => ipcRenderer.on("copy:request", () => cb()),
+  scheduleGet: () => ipcRenderer.invoke("schedule:get"),
+  scheduleApply: (payload) => ipcRenderer.invoke("schedule:apply", payload),
+  scheduleRemove: () => ipcRenderer.invoke("schedule:remove"),
+  log: (msg) => ipcRenderer.send("ui:log", msg),
+});
