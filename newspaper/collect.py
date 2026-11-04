@@ -397,12 +397,72 @@ def discover_feeds(home: str, domain: str) -> list[str]:
 
 
 # ------------------------------------------------------------- source config
-def _known(host: str, known: set[str]) -> bool:
-    return any(host == k or host.endswith("." + k) for k in known)
+def _same_domain(host: str, domain: str) -> bool:
+    host = (host or "").lower().replace("www.", "")
+    domain = (domain or "").lower().replace("www.", "")
+    return bool(host and domain) and (host == domain or host.endswith("." + domain))
 
 
-def load_sources() -> list[dict]:
-    """SOURCES + sources.json + ό,τι υπάρχει μόνο στο sites.txt."""
+def _base_for_host(host: str, known: list[dict]) -> dict | None:
+    for base in known:
+        if _same_domain(host, base.get("domain", "")):
+            return base
+    return None
+
+
+def _source_from_line(line: str, overrides: dict[str, dict],
+                      known: list[dict]) -> dict | None:
+    """Μία γραμμή του sites.txt → ρυθμισμένη πηγή."""
+    if youtube.is_youtube(line):
+        handle = line.rstrip("/").split("/")[-1] or "youtube"
+        source_id = f"yt-{re.sub(r'[^a-z0-9]+', '_', handle.lower())}"
+        entry = {
+            "id": source_id,
+            "name": handle,
+            "domain": "youtube.com",
+            "lang": "en",
+            "tier": 3,
+            "category": "video",
+            "home": line,
+            "auto": True,
+            "kind": "youtube",
+        }
+        entry.update(overrides.get(source_id, {}))
+        entry["site_url"] = line
+        return entry
+
+    host = urlsplit(line).netloc.lower().replace("www.", "")
+    if not host:
+        return None
+
+    base = _base_for_host(host, known)
+    if base:
+        entry = dict(base)
+        entry.update(overrides.get(base["domain"], {}))
+        entry.update(overrides.get(host, {}))
+    else:
+        entry = {
+            "id": re.sub(r"[^a-z0-9]+", "_", host),
+            "name": host,
+            "domain": host,
+            "lang": "el" if host.endswith(".gr") else "en",
+            "tier": 3,
+            "category": "news",
+            "home": line,
+            "auto": True,
+        }
+        entry.update(overrides.get(host, {}))
+    entry["site_url"] = line
+    return entry
+
+
+def load_sources(*, include_disabled: bool = False) -> list[dict]:
+    """Οι πηγές του sites.txt, με τη σειρά τους, εμπλουτισμένες από SOURCES.
+
+    Το sites.txt είναι η πηγή αλήθειας: ό,τι δεν είναι εκεί δεν συλλέγεται
+    (ακόμη κι αν το αρχείο είναι κενό). Μόνο αν το αρχείο **λείπει** πέφτουμε
+    στις προεπιλογές του SOURCES.
+    """
     overrides: dict[str, dict] = {}
     if SOURCES_JSON.exists():
         try:
@@ -410,62 +470,50 @@ def load_sources() -> list[dict]:
         except Exception:
             overrides = {}
 
+    has_sites_file = SITES_FILE.exists()
+    lines: list[str] = []
+    if has_sites_file:
+        lines = [
+            line.strip()
+            for line in SITES_FILE.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.strip().startswith("#") and "://" in line
+        ]
+
     sources: list[dict] = []
-    for base in SOURCES:
-        entry = dict(base)
-        entry.update(overrides.get(base["domain"], {}))
-        sources.append(entry)
+    seen_ids: set[str] = set()
+    seen_hosts: set[str] = set()
 
-    known = {s["domain"].replace("www.", "") for s in sources}
-    youtube_ids = {s["id"] for s in sources}
-    if SITES_FILE.exists():
-        for line in SITES_FILE.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "://" not in line:
+    if has_sites_file:
+        for line in lines:
+            entry = _source_from_line(line, overrides, SOURCES)
+            if not entry:
                 continue
-
-            # Κανάλια YouTube: κάθε URL είναι ξεχωριστή πηγή (όχι dedupe ανά host).
-            if youtube.is_youtube(line):
-                handle = line.rstrip("/").split("/")[-1] or "youtube"
-                source_id = f"yt-{re.sub(r'[^a-z0-9]+', '_', handle.lower())}"
-                if source_id in youtube_ids:
+            key = entry["id"]
+            if key in seen_ids:
+                continue
+            if entry.get("kind") != "youtube":
+                host = entry.get("domain", "").lower().replace("www.", "")
+                if host in seen_hosts:
                     continue
-                entry = {
-                    "id": source_id,
-                    "name": handle,
-                    "domain": "youtube.com",
-                    "lang": "en",
-                    "tier": 3,
-                    "category": "video",
-                    "home": line,
-                    "auto": True,
-                    "kind": "youtube",
-                }
-                entry.update(overrides.get(source_id, {}))
-                sources.append(entry)
-                youtube_ids.add(source_id)
-                continue
-
-            host = urlsplit(line).netloc.lower().replace("www.", "")
-            if _known(host, known):
-                continue
-            entry = {
-                "id": re.sub(r"[^a-z0-9]+", "_", host),
-                "name": host,
-                "domain": host,
-                "lang": "en",
-                "tier": 3,
-                "category": "news",
-                "home": line,
-                "auto": True,
-            }
-            entry.update(overrides.get(host, {}))
+                seen_hosts.add(host)
+            entry["order"] = len(sources)
             sources.append(entry)
-            known.add(host)
+            seen_ids.add(key)
+    else:
+        # Πρώτη εκκίνηση / χαμένο sites.txt: κράτα τις γνωστές πηγές.
+        for base in SOURCES:
+            entry = dict(base)
+            entry.update(overrides.get(base["domain"], {}))
+            entry["site_url"] = entry.get("home", "")
+            entry["order"] = len(sources)
+            sources.append(entry)
+            seen_ids.add(entry["id"])
 
     disabled = [_norm_source(url) for url in (settings.get("sources_disabled") or []) if url]
-    if disabled:
-        sources = [s for s in sources if not _is_disabled(s, disabled)]
+    for source in sources:
+        source["active"] = not _is_disabled(source, disabled) if disabled else True
+    if not include_disabled and disabled:
+        sources = [s for s in sources if s["active"]]
     return sources
 
 
@@ -601,15 +649,18 @@ def collect_source(source: dict) -> tuple[list[dict], dict]:
     return list(uniq.values()), meta
 
 
-def collect_all(offline: bool = False) -> tuple[list[dict], dict]:
-    sources = load_sources()
+def collect_all(offline: bool = False,
+                sources: list[dict] | None = None) -> tuple[list[dict], dict]:
+    sources = sources if sources is not None else load_sources()
     cache_file = CACHE_DIR / "collect.json"
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     if offline and cache_file.exists():
         data = json.loads(cache_file.read_text(encoding="utf-8"))
-        log.info("Offline: %s items από cache", len(data.get("items", [])))
-        return data.get("items", []), data.get("report", {})
+        active_ids = {s["id"] for s in sources}
+        items = [x for x in data.get("items", []) if x.get("source_id") in active_ids]
+        log.info("Offline: %s items από cache", len(items))
+        return items, data.get("report", {})
 
     all_items: list[dict] = []
     report: dict[str, dict] = {}

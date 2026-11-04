@@ -266,12 +266,33 @@ KNOWN_BY_HOST.update({
 })
 KNOWN_NAMES = {s["name"] for s in SOURCES}
 
+KNOWN_ID_BY_HOST = {s["domain"].replace("www.", ""): s["id"] for s in SOURCES}
+KNOWN_ID_BY_HOST.update({
+    "bbc.co.uk": "bbc",
+    "bbc.com": "bbc",
+    "cnn.it": "cnn",
+    "cnn.com": "cnn",
+    "finance.yahoo.com": "yahoo",
+    "gamespot.com": "gamespot",
+    "imdb.com": "imdb",
+    "nba.com": "nba",
+    "euroleaguebasketball.net": "euroleague",
+})
+
 
 def host_owner(host: str) -> str | None:
     host = (host or "").lower().replace("www.", "")
     for known_host, name in KNOWN_BY_HOST.items():
         if host == known_host or host.endswith("." + known_host):
             return name
+    return None
+
+
+def host_source_id(host: str) -> str | None:
+    host = (host or "").lower().replace("www.", "")
+    for known_host, source_id in KNOWN_ID_BY_HOST.items():
+        if host == known_host or host.endswith("." + known_host):
+            return source_id
     return None
 
 
@@ -294,6 +315,9 @@ def _align_source(item: dict) -> None:
         item["source_names"] = [owner] + [
             n for n in item.get("source_names", []) if n != owner
         ]
+        owner_id = host_source_id(host)
+        if owner_id:
+            item["source_id"] = owner_id
         item["domain"] = host
         item["source_aligned"] = True
 

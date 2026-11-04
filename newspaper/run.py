@@ -25,7 +25,6 @@ if hasattr(sys.stdout, "reconfigure"):
 from config import (
     CACHE_DIR,
     OUTPUT_DIR,
-    TOTAL_PAGES,
     TZ,
     WORD_LIMITS,
 )
@@ -38,6 +37,7 @@ import images as image_tools
 import lang
 import normalize as normalizer
 import rank as ranker
+import sections as section_tools
 import settings
 import translate as translator
 import trends as trends_mod
@@ -237,8 +237,7 @@ def run(args: argparse.Namespace) -> int:
 
     log = logging.getLogger("run")
     started = time.time()
-    log.info("Η ΗΜΕΡΗΣΙΑ · φύλλο %s · %s σελίδες", target.isoformat(), TOTAL_PAGES)
-    emit("start", 0, date=target.isoformat(), pages=TOTAL_PAGES)
+    log.info("Η ΗΜΕΡΗΣΙΑ · φύλλο %s", target.isoformat())
 
     out_dir = OUTPUT_DIR / target.isoformat()
     data_dir = out_dir / "data"
@@ -328,10 +327,18 @@ def run(args: argparse.Namespace) -> int:
     if args.check_quality:
         return check_quality(data_dir / "items.json")
 
+    # 0. πηγές + ενότητες ------------------------------------------------
+    sources = collect.load_sources()
+    source_order = {s["id"]: i for i, s in enumerate(sources)}
+    section_plan = section_tools.resolve(sources, config.WEIGHTS)
+    estimated_pages = settings.total_pages(section_plan)
+    log.info("Ενότητες: %s πηγές · budget %s σελίδες", len(section_plan), estimated_pages)
+    emit("start", 0, date=target.isoformat(), pages=estimated_pages)
+
     # 1. συλλογή ---------------------------------------------------------
     t0 = time.time()
     emit("collect", 10)
-    raw_items, report = collect.collect_all(offline=args.offline)
+    raw_items, report = collect.collect_all(offline=args.offline, sources=sources)
     health_data = health_mod.update(report)
     log.info("Συλλογή: %s ακατέργαστα θέματα σε %.1fs", len(raw_items), time.time() - t0)
     emit("collect", 25, items=len(raw_items))
@@ -342,9 +349,9 @@ def run(args: argparse.Namespace) -> int:
     log.info("Μετά τον καθαρισμό/dedupe: %s θέματα · %s διαφημίσεις εκτός",
              len(items), norm_stats.get("hard_ads", 0))
     if not items:
-        log.warning("Καμία είδηση για σήμερα — το φύλλο θα βγει με κενές ενότητες")
+        log.warning("Καμία είδηση για σήμερα — το φύλλο θα βγει χωρίς ενότητες πηγών")
 
-    items = ranker.rank(items)
+    items = ranker.rank(items, order=source_order)
 
     # 2b. δημοφιλείς αναζητήσεις 24ώρου (Google Trends) -------------------
     trend_pages: list[dict] = []
@@ -382,11 +389,12 @@ def run(args: argparse.Namespace) -> int:
             log.info("Πύλη ποιότητας: %s διαφημίσεις/χορηγούμενα εκτός", filtered_ads)
         emit("articles", 42, filtered_ads=filtered_ads)
 
-    edition = ranker.build_edition(items, pages_total=TOTAL_PAGES,
+    edition = ranker.build_edition(items, section_plan,
                                    start_num=2 + len(trend_pages))
+    planned_pages = 1 + len(trend_pages) + len(edition["pages"]) + 2
     log.info("Σελιδοποίηση: %s σελίδες · %s θέματα",
-             len(edition["pages"]) + 3, len(gather_visible(edition)))
-    emit("plan", 45, items=len(items))
+             planned_pages, len(gather_visible(edition)))
+    emit("plan", 45, items=len(items), pages=planned_pages)
 
     visible = gather_visible(edition)
 
@@ -456,14 +464,17 @@ def run(args: argparse.Namespace) -> int:
 
     # 7. σύνθεση ----------------------------------------------------------
     stats = ranker.stats(edition, items)
-    stats["sources_ok"] = health_mod.summary()["ok"]
+    stats["sources_ok"] = sum(
+        1 for s in sources
+        if (health_data.get(s["name"]) or {}).get("status") == "ok"
+    )
     coverage = image_tools.coverage(visible, images_map)
 
     payload = builder.build_payload(
         edition,
         today=target,
         stats=stats,
-        sources=health_mod.status_rows(),
+        sources=health_mod.status_rows(order=[s["name"] for s in sources]),
         images=images_map,
         qr=qr_map,
         coverage=coverage,
@@ -512,6 +523,8 @@ def run(args: argparse.Namespace) -> int:
         "lead": payload["lead"]["id"] if payload["lead"] else None,
         "total_pages": payload["total_pages"],
         "trends_pages": len(payload.get("trends") or []),
+        "sections": [{"key": s["key"], "label": s["label_el"], "pages": s["pages"]}
+                     for s in section_plan],
         "pages": [{"key": p["key"], "num": p["num"], "kind": p["kind"],
                    "featured": p["featured"]["id"] if p["featured"] else None,
                    "stories": [x["id"] for x in p["stories"]],

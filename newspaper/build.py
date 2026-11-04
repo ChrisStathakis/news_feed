@@ -14,12 +14,10 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import settings
 from config import (
-    CATEGORIES,
     EDITION_NAME,
     EDITION_NAME_EN,
     OUTPUT_DIR,
     TEMPLATES_DIR,
-    TOTAL_PAGES,
     TZ,
 )
 from collect import CHROME_CANDIDATES
@@ -213,11 +211,8 @@ def build_payload(edition: dict, *, today: date, stats: dict, sources: list[dict
         sections.append({"key": page["key"], "el": page["label_el"],
                          "en": page["label_en"], "num": page["num"]})
 
-    counts = edition["numbers"]["counts"]
     numbers = {
         **edition["numbers"],
-        "rows": [{"el": dict((k, el) for k, el, _ in CATEGORIES)[key], "count": counts.get(key, 0)}
-                 for key, _, _ in CATEGORIES],
         "coverage": coverage or {},
     }
 

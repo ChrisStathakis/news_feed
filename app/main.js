@@ -247,6 +247,30 @@ function notifyFullscreen() {
   }
 }
 
+/* ------------------------------------------------------------ UI language */
+function uiText() {
+  let lang = "en";
+  try {
+    const data = JSON.parse(fs.readFileSync(UI_FILE, "utf8"));
+    if (data && data.lang === "el") lang = "el";
+  } catch {}
+  return lang === "el"
+    ? {
+        print: "Εκτύπωση",
+        edition: "φύλλο",
+        pdfFolderTitle: "Φάκελος αποθήκευσης PDF",
+        selectFolder: "Επιλογή φακέλου",
+        site: "site",
+      }
+    : {
+        print: "Print",
+        edition: "edition",
+        pdfFolderTitle: "PDF output folder",
+        selectFolder: "Select folder",
+        site: "site",
+      };
+}
+
 app.whenReady().then(() => {
   app.setAppUserModelId("gr.hmerisia.desktop");
   Menu.setApplicationMenu(null);
@@ -465,6 +489,7 @@ let printPreview = null;
 
 async function openPrintPreview(pdfPath, label) {
   if (printPreview && !printPreview.isDestroyed()) printPreview.destroy();
+  const strings = uiText();
 
   const preview = new BrowserWindow({
     width: 1000,
@@ -472,7 +497,7 @@ async function openPrintPreview(pdfPath, label) {
     minWidth: 640,
     minHeight: 480,
     backgroundColor: "#14120f",
-    title: `Εκτύπωση — ${label || "φύλλο"}`,
+    title: `${strings.print} — ${label || strings.edition}`,
     icon: path.join(__dirname, "assets", "icon.png"),
     autoHideMenuBar: true,
     parent: win || undefined,
@@ -540,7 +565,7 @@ ipcMain.handle("print:preview", async (_e, payload = {}) => {
       try {
         host = new URL(url).hostname.replace(/^www\./, "");
       } catch {}
-      return openPrintPreview(pdfPath, host || "site");
+      return openPrintPreview(pdfPath, host || uiText().site);
     } catch (err) {
       return { ok: false, error: String(err) };
     }
@@ -550,15 +575,44 @@ ipcMain.handle("print:preview", async (_e, payload = {}) => {
 });
 
 /* ----------------------------------------------------------------- sources */
+const KNOWN_SOURCE_NAMES = {
+  "bbc.com": "BBC News",
+  "bbc.co.uk": "BBC News",
+  "cnn.gr": "CNN Greece",
+  "cnn.com": "CNN International",
+  "edition.cnn.com": "CNN International",
+  "finance.yahoo.com": "Yahoo Finance",
+  "gamespot.com": "GameSpot",
+  "nba.com": "NBA",
+  "euroleaguebasketball.net": "EuroLeague",
+  "imdb.com": "IMDb",
+};
+
+// Το κλειδί βάρους ακολουθεί το domain που χρησιμοποιεί το pipeline.
+const KNOWN_SOURCE_DOMAINS = {
+  "bbc.com": "bbc.com",
+  "bbc.co.uk": "bbc.com",
+  "edition.cnn.com": "cnn.com",
+  "cnn.com": "cnn.com",
+  "cnn.gr": "cnn.gr",
+  "finance.yahoo.com": "finance.yahoo.com",
+  "gamespot.com": "gamespot.com",
+  "nba.com": "nba.com",
+  "euroleaguebasketball.net": "euroleaguebasketball.net",
+  "imdb.com": "imdb.com",
+};
+
 ipcMain.handle("sources:list", () => {
+  const settings = readSettingsRaw() || {};
   const health = readHealth();
   const healthByName = {};
   for (const [name, entry] of Object.entries(health)) {
-    healthByName[name.toLowerCase()] = entry;
+    healthByName[name.toLowerCase()] = { name, ...entry };
   }
-  const disabled = new Set(readSettingsRaw()?.sources_disabled || []);
+  const disabled = new Set(settings.sources_disabled || []);
+  const weights = settings.weights || {};
 
-  return readSites().map((url) => {
+  return readSites().map((url, index) => {
     let host = url;
     let handle = "";
     try {
@@ -568,9 +622,16 @@ ipcMain.handle("sources:list", () => {
         handle = parsed.pathname.split("/").filter(Boolean).pop() || "";
       }
     } catch {}
+    const kind = host.includes("youtube.com") ? "youtube" : "site";
+    const fallbackName = kind === "youtube"
+      ? (handle || host)
+      : (KNOWN_SOURCE_NAMES[host] || host);
 
+    const knownName = KNOWN_SOURCE_NAMES[host];
     let entry =
-      healthByName[handle.toLowerCase()] || healthByName[host.toLowerCase()] || null;
+      healthByName[(handle || "").toLowerCase()] ||
+      (knownName ? healthByName[knownName.toLowerCase()] : null) ||
+      healthByName[host.toLowerCase()] || null;
 
     if (!entry) {
       entry =
@@ -581,14 +642,35 @@ ipcMain.handle("sources:list", () => {
         })?.[1] || null;
     }
 
+    const name = entry?.name || fallbackName;
+    // Σταθερό κλειδί: source_id για YouTube, domain για sites.
+    const sourceId = kind === "youtube"
+      ? `yt-${String(handle || "youtube").toLowerCase().replace(/[^a-z0-9]+/g, "_")}`
+      : (KNOWN_SOURCE_DOMAINS[host] || host);
+    const key = sourceId;
+    const weight = Math.max(
+      0.3,
+      Math.min(2, Number(
+        weights[key] ?? weights[name] ?? weights[handle] ?? weights[host] ?? 1
+      ) || 1)
+    );
+
     return {
       url,
       host,
+      handle,
+      kind,
+      key,
+      sourceId,
+      name,
+      order: index,
       active: !disabled.has(url),
       status: entry?.status || "unknown",
       items: entry?.items ?? null,
       method: entry?.last_method || null,
       lastOk: entry?.last_ok || null,
+      weight,
+      pages: Math.max(1, Math.min(4, Math.round(weight))),
     };
   });
 });
@@ -628,15 +710,31 @@ ipcMain.handle("sources:remove", async (_e, url) => {
 });
 
 ipcMain.handle("sources:weight", async (_e, payload = {}) => {
-  const host = String(payload.host || "").trim();
+  const key = String(payload.key || payload.host || "").trim();
   const value = Math.max(0.3, Math.min(2, Number(payload.weight) || 1));
-  if (!host) return { ok: false };
+  if (!key) return { ok: false };
   const settings = (await readSettingsJson()) || {};
   settings.weights = settings.weights || {};
-  if (Math.abs(value - 1) < 0.001) delete settings.weights[host];
-  else settings.weights[host] = value;
+  if (Math.abs(value - 1) < 0.001) delete settings.weights[key];
+  else settings.weights[key] = value;
   fs.writeFileSync(SETTINGS, JSON.stringify(settings, null, 2), "utf8");
   return { ok: true, weights: settings.weights };
+});
+
+ipcMain.handle("sources:reorder", (_e, urls) => {
+  const current = readSites();
+  const wanted = Array.isArray(urls) ? urls.map((u) => String(u || "").trim()) : [];
+  const ordered = [];
+  for (const url of wanted) {
+    if (current.includes(url) && !ordered.includes(url)) ordered.push(url);
+  }
+  // Ποτέ μη χάσεις πηγή αν το UI στείλει ελλιπή λίστα.
+  for (const url of current) {
+    if (!ordered.includes(url)) ordered.push(url);
+  }
+  if (!ordered.length) return { ok: false, error: "empty" };
+  writeSites(ordered);
+  return { ok: true, urls: ordered };
 });
 
 ipcMain.handle("sources:test", async (_e, url) => {
@@ -694,11 +792,12 @@ ipcMain.handle("settings:save", async (_e, data) => {
 
 ipcMain.handle("dialog:pickFolder", async (_e, current) => {  if (!win || win.isDestroyed()) return { ok: false };
   const start = typeof current === "string" && current.trim() ? current.trim() : app.getPath("documents");
+  const strings = uiText();
   const result = await dialog.showOpenDialog(win, {
-    title: "Φάκελος αποθήκευσης PDF",
+    title: strings.pdfFolderTitle,
     defaultPath: start,
     properties: ["openDirectory", "createDirectory"],
-    buttonLabel: "Επιλογή φακέλου",
+    buttonLabel: strings.selectFolder,
   });
   if (result.canceled || !result.filePaths?.length) return { ok: false, canceled: true };
   return { ok: true, path: result.filePaths[0] };

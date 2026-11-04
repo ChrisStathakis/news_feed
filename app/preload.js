@@ -19,7 +19,8 @@ contextBridge.exposeInMainWorld("api", {
   sources: () => ipcRenderer.invoke("sources:list"),
   addSource: (url) => ipcRenderer.invoke("sources:add", url),
   removeSource: (url) => ipcRenderer.invoke("sources:remove", url),
-  setWeight: (host, weight) => ipcRenderer.invoke("sources:weight", { host, weight }),
+  setWeight: (key, weight) => ipcRenderer.invoke("sources:weight", { key, weight }),
+  reorderSources: (urls) => ipcRenderer.invoke("sources:reorder", urls),
   toggleSource: (payload) => ipcRenderer.invoke("sources:toggle", payload),
   testSource: (url) => ipcRenderer.invoke("sources:test", url),
 

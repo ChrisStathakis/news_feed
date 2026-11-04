@@ -1,5 +1,6 @@
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const { t, getLang, setLang, apply: applyI18n } = window.I18N;
 
 window.addEventListener("error", (e) => {
   const el = document.getElementById("zoomLabel");
@@ -10,26 +11,19 @@ window.addEventListener("unhandledrejection", (e) => {
   if (el) el.textContent = `REJ ${e.reason}`;
 });
 
-const STAGES = {
-  start: "Έναρξη",
-  collect: "Συλλογή πηγών",
-  plan: "Σελιδοποίηση",
-  articles: "Άρθρα",
-  translate: "Μετάφραση",
-  images: "Εικόνες",
-  render: "Σύνθεση",
-  pdf: "Εξαγωγή PDF",
-  done: "Ολοκληρώθηκε",
-  check: "Έλεγχος πηγής",
-};
-
 const state = {
   date: null,
   editionUrl: null,
   settings: null,
   history: [],
   running: false,
+  sites: null,
+  sources: [],
+  weights: {},
 };
+
+let lastProgress = null;
+let uiReady = false;
 
 function todayISO() {
   const d = new Date();
@@ -243,10 +237,13 @@ const copyTopBtn = $("#btnCopy");
 const copyFocusBtn = $("#focusCopy");
 const focusBar = $("#focusBar");
 const focusDomain = $("#focusDomain");
+const focusExitPin = $("#focusExitPin");
+const focusHint = $("#focusHint");
 const btnFullscreen = $("#btnFullscreen");
 
 let focusMode = false;
 let idleTimer = null;
+let focusHintTimer = null;
 let externalPending = false;
 
 function currentHost() {
@@ -282,7 +279,10 @@ async function copyCurrentUrl(btn) {
   if (!btn.dataset.label) btn.dataset.label = btn.textContent;
   clearTimeout(copyTimers.get(btn));
   btn.classList.toggle("is-copied", ok);
-  btn.textContent = ok ? (btn.id === "focusCopy" ? "✓" : "✓ Αντιγράφηκε") : "✗ Αποτυχία";
+  const short = btn.id === "focusCopy";
+  btn.textContent = ok
+    ? (short ? "✓" : t("copy.copied"))
+    : (short ? "✗" : t("copy.failed"));
   copyTimers.set(
     btn,
     setTimeout(() => {
@@ -312,6 +312,20 @@ function showFocusBar() {
   scheduleFocusIdle();
 }
 
+function showFocusHint() {
+  if (!focusHint) return;
+  focusHint.hidden = false;
+  clearTimeout(focusHintTimer);
+  focusHintTimer = setTimeout(() => {
+    focusHint.hidden = true;
+  }, 4200);
+}
+
+function hideFocusHint() {
+  clearTimeout(focusHintTimer);
+  if (focusHint) focusHint.hidden = true;
+}
+
 function syncFocusNav(host, canBack = false) {
   focusDomain.textContent = host;
   $("#focusBack").disabled = !host && !canBack;
@@ -328,13 +342,19 @@ function applyFocusUi(on) {
   focusMode = !!on;
   document.documentElement.dataset.focus = focusMode ? "on" : "off";
   focusBar.hidden = !focusMode;
-  if (btnFullscreen) btnFullscreen.title = focusMode ? "Έξοδος (Esc)" : "Πλήρης οθόνη (F11)";
+  if (focusExitPin) {
+    focusExitPin.hidden = !focusMode;
+    focusExitPin.title = t("focus.exitTitle");
+  }
+  if (btnFullscreen) btnFullscreen.title = t(focusMode ? "top.exitFullTitle" : "top.fullTitle");
   if (focusMode) {
     syncFocusNav(currentHost());
     showFocusBar();
+    showFocusHint();
   } else {
     clearTimeout(idleTimer);
     focusBar.classList.add("is-idle");
+    hideFocusHint();
   }
   setTimeout(applyStoredZoom, 260);
 }
@@ -345,6 +365,12 @@ async function setFocusMode(on) {
     const actual = await window.api.setFullscreen(!!on);
     if (typeof actual === "boolean" && actual !== focusMode) applyFocusUi(actual);
   } catch {}
+}
+
+function updateFocusTexts() {
+  if (btnFullscreen) btnFullscreen.title = t(focusMode ? "top.exitFullTitle" : "top.fullTitle");
+  if (focusExitPin) focusExitPin.title = t("focus.exitTitle");
+  if (focusMode) showFocusHint();
 }
 
 function updateNav() {
@@ -431,6 +457,7 @@ $("#focusHome").addEventListener("click", backToEdition);
 
 btnFullscreen.addEventListener("click", () => setFocusMode(!focusMode));
 $("#focusExit").addEventListener("click", () => setFocusMode(false));
+focusExitPin?.addEventListener("click", () => setFocusMode(false));
 $("#focusZoomIn").addEventListener("click", () => zoomBy(0.1));
 $("#focusZoomOut").addEventListener("click", () => zoomBy(-0.1));
 $("#focusFit").addEventListener("click", fitZoom);
@@ -485,14 +512,14 @@ async function printCurrent() {
 
   $("#progress").hidden = false;
   $("#progressFill").style.width = "30%";
-  $("#progressLabel").textContent = "Προετοιμασία εκτύπωσης…";
+  $("#progressLabel").textContent = t("progress.printPreparing");
 
   // Παράγεται πρώτα σωστό PDF και ανοίγει σε προεπισκόπηση με τον viewer.
   const res = await window.api.printPreview({ webContentsId: id, date: state.date });
   $("#progressFill").style.width = "100%";
   $("#progressLabel").textContent = res?.ok
-    ? "Άνοιξε η προεπισκόπηση — πάτησε το εικονίδιο εκτυπωτή πάνω δεξιά."
-    : `Αποτυχία εκτύπωσης: ${res?.error || "άγνωστο"}`;
+    ? t("progress.printReady")
+    : t("progress.printFail", { error: res?.error || t("common.unknown") });
   setTimeout(() => ($("#progress").hidden = true), res?.ok ? 6000 : 5000);
 }
 
@@ -529,44 +556,64 @@ async function openEdition(date, opts = {}) {
   setTimeout(applyStoredZoom, 900);
   $("#todayEmpty").hidden = true;
   if (focusMode) showFocusBar();
-  const entry = state.history.find((h) => h.date === date);
-  $("#editionMeta").textContent = entry
-    ? `${entry.items ?? "—"} θέματα · ${entry.coverage ?? "—"}% φωτογραφίες · ${entry.pages ?? "—"} σελ.`
-    : "";
+  renderEditionMeta();
   return true;
+}
+
+function renderEditionMeta() {
+  const entry = state.history.find((h) => h.date === state.date);
+  $("#editionMeta").textContent = entry
+    ? t("meta.edition", {
+        items: entry.items ?? "—",
+        coverage: entry.coverage ?? "—",
+        pages: entry.pages ?? "—",
+      })
+    : "";
 }
 
 /* ------------------------------------------------------------------- run */
 function setProgress(stage, pct, extra = {}) {
+  lastProgress = { stage, pct, extra };
   $("#progress").hidden = false;
   $("#progressFill").style.width = `${Math.max(2, pct)}%`;
-  const label = STAGES[stage] || stage;
+  const key = `stage.${stage}`;
+  const translated = t(key);
+  const label = translated === key ? stage : translated;
   const bits = [label];
-  if (extra.items) bits.push(`${extra.items} θέματα`);
-  if (extra.filtered_ads) bits.push(`${extra.filtered_ads} διαφημίσεις εκτός`);
-  if (extra.fallback) bits.push(`${extra.fallback} στο πρωτότυπο`);
-  if (extra.images) bits.push(`${extra.images} φωτογραφίες`);
+  if (extra.items) bits.push(t("progress.items", { n: extra.items }));
+  if (extra.filtered_ads) bits.push(t("progress.ads", { n: extra.filtered_ads }));
+  if (extra.fallback) bits.push(t("progress.fallback", { n: extra.fallback }));
+  if (extra.images) bits.push(t("progress.images", { n: extra.images }));
   $("#progressLabel").textContent = bits.join(" · ");
+}
+
+function renderRunButton() {
+  const btn = $("#btnRun");
+  if (btn) btn.textContent = t(state.running ? "top.processing" : "top.newEdition");
+  const stop = $("#btnStop");
+  if (stop) stop.textContent = t("progress.stop");
 }
 
 async function startRun() {
   if (state.running) return;
   state.running = true;
   $("#btnRun").disabled = true;
-  $("#btnRun").textContent = "Επεξεργασία…";
+  $("#btnRun").textContent = t("top.processing");
   const stop = $("#btnStop");
   if (stop) {
     stop.hidden = false;
     stop.disabled = false;
-    stop.textContent = "■ Στοπ";
+    stop.textContent = t("progress.stop");
   }
   setProgress("start", 2, {});
   const res = await window.api.run({});
   if (!res.ok) {
     state.running = false;
     $("#btnRun").disabled = false;
-    $("#btnRun").textContent = "Νέο φύλλο";
-    $("#progressLabel").textContent = res.error === "running" ? "Εκτελείται ήδη…" : "Σφάλμα εκκίνησης";
+    $("#btnRun").textContent = t("top.newEdition");
+    $("#progressLabel").textContent = res.error === "running"
+      ? t("progress.alreadyRunning")
+      : t("progress.startFailed");
     if (stop) stop.hidden = true;
   }
 }
@@ -578,21 +625,22 @@ window.api.onRunLog((line) => {
 window.api.onRunEnd(async ({ code, stopped }) => {
   state.running = false;
   $("#btnRun").disabled = false;
-  $("#btnRun").textContent = "Νέο φύλλο";
+  $("#btnRun").textContent = t("top.newEdition");
   const stop = $("#btnStop");
   if (stop) {
     stop.hidden = true;
     stop.disabled = false;
-    stop.textContent = "■ Στοπ";
+    stop.textContent = t("progress.stop");
   }
   $("#progressFill").style.width = "100%";
   $("#progressLabel").textContent = stopped
-    ? "Η έκδοση σταμάτησε."
+    ? t("progress.stopped")
     : code === 0
-      ? "Ολοκληρώθηκε"
-      : `Αποτυχία (κωδικός ${code})`;
+      ? t("progress.done")
+      : t("progress.failed", { code });
   setTimeout(() => ($("#progress").hidden = true), stopped ? 3500 : 2500);
   await refreshHistory();
+  await refreshSources();
   if (code === 0 && !stopped) await openEdition(todayISO());
 });
 
@@ -600,13 +648,13 @@ $("#btnStop")?.addEventListener("click", async () => {
   const stop = $("#btnStop");
   if (!state.running || !stop) return;
   stop.disabled = true;
-  stop.textContent = "Διακοπή…";
-  $("#progressLabel").textContent = "Διακοπή έκδοσης…";
+  stop.textContent = t("progress.stopping");
+  $("#progressLabel").textContent = t("progress.stopRequested");
   const res = await window.api.stopRun();
   if (!res?.killed && !res?.scheduled) {
     stop.disabled = false;
-    stop.textContent = "■ Στοπ";
-    $("#progressLabel").textContent = "Δεν βρέθηκε ενεργή έκδοση.";
+    stop.textContent = t("progress.stop");
+    $("#progressLabel").textContent = t("progress.noRun");
   }
 });
 
@@ -621,11 +669,13 @@ $("#btnExport").addEventListener("click", async () => {
   $("#btnExport").disabled = true;
   $("#progress").hidden = false;
   $("#progressFill").style.width = "60%";
-  $("#progressLabel").textContent = "Εξαγωγή PDF…";
+  $("#progressLabel").textContent = t("progress.pdfExporting");
   const res = await window.api.exportPdf(state.date);
   $("#btnExport").disabled = false;
   $("#progressFill").style.width = "100%";
-  $("#progressLabel").textContent = res.ok ? `PDF: ${res.pdf}` : `Αποτυχία PDF: ${res.error || ""}`;
+  $("#progressLabel").textContent = res.ok
+    ? t("progress.pdfDone", { path: res.pdf })
+    : t("progress.pdfFail", { error: res.error || "" });
   setTimeout(() => ($("#progress").hidden = true), 3000);
 });
 
@@ -642,11 +692,11 @@ function renderHistory() {
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <button class="card__del" title="Διαγραφή φύλλου">×</button>
+      <button class="card__del" title="${t("history.deleteTitle")}">×</button>
       <div class="card__date">${entry.date}</div>
       <div class="card__meta">
-        ${entry.items ?? "—"} θέματα · ${entry.pages ?? "—"} σελίδες<br>
-        ${entry.coverage ?? "—"}% φωτογραφίες · ${entry.quality?.ads_removed ?? 0} ads εκτός
+        ${t("history.cardLine1", { items: entry.items ?? "—", pages: entry.pages ?? "—" })}<br>
+        ${t("history.cardLine2", { coverage: entry.coverage ?? "—", ads: entry.quality?.ads_removed ?? 0 })}
       </div>`;
     card.addEventListener("click", async () => {
       await openEdition(entry.date);
@@ -654,7 +704,7 @@ function renderHistory() {
     });
     card.querySelector(".card__del").addEventListener("click", async (e) => {
       e.stopPropagation();
-      if (!confirm(`Διαγραφή του φύλλου ${entry.date};`)) return;
+      if (!confirm(t("history.confirmDelete", { date: entry.date }))) return;
       const res = await window.api.deleteEdition(entry.date);
       if (res.history) {
         state.history = res.history;
@@ -663,73 +713,168 @@ function renderHistory() {
     });
     list.appendChild(card);
   }
-  if (!state.history.length) list.innerHTML = `<p class="hint">Κανένα φύλλο ακόμη.</p>`;
+  if (!state.history.length) list.innerHTML = `<p class="hint">${t("history.empty")}</p>`;
 }
 
 /* ---------------------------------------------------------------- sources */
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+function statusLabel(status) {
+  const key = `status.${status || "unknown"}`;
+  const value = t(key);
+  return value === key ? (status || "—") : value;
+}
+
+function sourceWeight(value) {
+  return Math.max(0.3, Math.min(2, Number(value) || 1));
+}
+
+function sourcePages(weight) {
+  return Math.max(1, Math.min(4, Math.round(sourceWeight(weight))));
+}
+
+function setSourceHint(text) {
+  const el = $("#sourceHint");
+  if (!el) return;
+  el.textContent = text;
+  clearTimeout(setSourceHint.timer);
+  setSourceHint.timer = setTimeout(() => { el.textContent = ""; }, 4200);
+}
+
+function setSectionsHint(text) {
+  const el = $("#sectionsHint");
+  if (!el) return;
+  el.textContent = text;
+  clearTimeout(setSectionsHint.timer);
+  setSectionsHint.timer = setTimeout(() => { el.textContent = ""; }, 4200);
+}
+
 async function refreshSources() {
   const sources = await window.api.sources();
   const settings = await window.api.settings();
-  const weights = settings?.weights || {};
-  const table = $("#sourceList");
-  table.innerHTML = `
-    <div class="trow trow--head">
-      <span></span><span>On</span><span>Πηγή</span><span>Κατάσταση</span><span>Θέματα</span><span>Μέθοδος</span><span>Βάρος</span><span></span>
-    </div>`;
+  state.sources = sources;
+  // Κρατά το state.settings συγχρονισμένο με ό,τι γράφτηκε απευθείας
+  // από Πηγές (weights / sources_disabled), ώστε το Save να μην τα σβήσει.
+  if (settings) state.settings = settings;
+  state.weights = settings?.weights || {};
+  state.sites = sources.length;
+  renderSiteCount();
+  renderSourcesTable();
+  renderSectionList();
+}
 
-  for (const s of sources) {
-    const row = document.createElement("div");
-    row.className = "trow";
-    if (s.active === false) row.classList.add("is-off");
-    const weight = weights[s.host] ?? 1;
-    row.innerHTML = `
-      <span class="dot dot--${s.status || "unknown"}"></span>
-      <span><input class="sactive" type="checkbox" data-url="${s.url}" ${s.active === false ? "" : "checked"}
-                   title="Ενεργή πηγή — αν το κλείσεις, δεν τρέχει στο επόμενο φύλλο"></span>
-      <span class="trow__url" title="${s.url}">${s.url}</span>
-      <span>${s.status || "—"}</span>
-      <span>${s.items ?? "—"}</span>
-      <span>${s.method || "—"}</span>
-      <span><input class="winput" type="number" min="0.3" max="2" step="0.1" value="${weight}"
-                   data-host="${s.host}" title="Βάρος πηγής (0.3–2.0)"></span>
-      <span><button class="tbtn" data-test="${s.url}">Δοκιμή</button>
-            <button class="tbtn" data-remove="${s.url}">×</button></span>`;
-    table.appendChild(row);
+async function applySourceOrder(urls) {
+  const res = await window.api.reorderSources(urls);
+  if (!res?.ok) {
+    setSectionsHint(t("settings.orderError"));
+    return;
   }
+  await refreshSources();
+  setSectionsHint(t("settings.orderSaved"));
+}
 
-  table.querySelectorAll(".sactive").forEach((cb) =>
+async function reorderSource(fromUrl, toUrl) {
+  const urls = state.sources.map((s) => s.url);
+  const from = urls.indexOf(fromUrl);
+  const to = urls.indexOf(toUrl);
+  if (from < 0 || to < 0 || from === to) return;
+  const [moved] = urls.splice(from, 1);
+  urls.splice(to, 0, moved);
+  await applySourceOrder(urls);
+}
+
+async function moveSource(url, delta) {
+  const urls = state.sources.map((s) => s.url);
+  const from = urls.indexOf(url);
+  const to = Math.max(0, Math.min(urls.length - 1, from + delta));
+  if (from < 0 || from === to) return;
+  const [moved] = urls.splice(from, 1);
+  urls.splice(to, 0, moved);
+  await applySourceOrder(urls);
+}
+
+function attachSourceDrag(container) {
+  let dragUrl = null;
+  container.querySelectorAll("[data-drag-url]").forEach((row) => {
+    const handle = row.querySelector(".drag");
+    if (!handle) return;
+    handle.setAttribute("draggable", "true");
+    handle.addEventListener("dragstart", (e) => {
+      dragUrl = row.dataset.dragUrl;
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", dragUrl);
+      row.classList.add("is-dragging");
+    });
+    handle.addEventListener("dragend", () => {
+      dragUrl = null;
+      container.querySelectorAll(".is-dragging,.drop-target")
+        .forEach((el) => el.classList.remove("is-dragging", "drop-target"));
+    });
+    row.addEventListener("dragover", (e) => {
+      if (!dragUrl || row.dataset.dragUrl === dragUrl) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      row.classList.add("drop-target");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drop-target"));
+    row.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      row.classList.remove("drop-target");
+      const target = row.dataset.dragUrl;
+      if (!dragUrl || !target || dragUrl === target) return;
+      await reorderSource(dragUrl, target);
+    });
+  });
+}
+
+function bindSourceActions(container) {
+  container.querySelectorAll(".sactive").forEach((cb) =>
     cb.addEventListener("change", async () => {
       cb.disabled = true;
       const res = await window.api.toggleSource({ url: cb.dataset.url, active: cb.checked });
       cb.disabled = false;
-      if (res?.ok) cb.closest(".trow")?.classList.toggle("is-off", !cb.checked);
-      else cb.checked = !cb.checked;
-      $("#sourceHint") && ($("#sourceHint").textContent = cb.checked
-        ? "Η πηγή ενεργοποιήθηκε — ισχύει στο επόμενο φύλλο."
-        : "Η πηγή απενεργοποιήθηκε — δεν θα τρέξει στο επόμενο φύλλο.");
+      if (!res?.ok) {
+        cb.checked = !cb.checked;
+        return;
+      }
+      const hint = container.id === "sectionList" ? setSectionsHint : setSourceHint;
+      hint(cb.checked ? t("sources.enabled") : t("sources.disabled"));
+      await refreshSources();
     })
   );
 
-  table.querySelectorAll(".winput").forEach((input) =>
+  container.querySelectorAll(".winput").forEach((input) =>
     input.addEventListener("change", async () => {
-      const value = Math.max(0.3, Math.min(2, Number(input.value) || 1));
+      const key = input.dataset.key;
+      const value = sourceWeight(input.value);
       input.value = value.toFixed(1);
-      await window.api.setWeight(input.dataset.host, value);
+      await window.api.setWeight(key, value);
+      await refreshSources();
     })
   );
 
-  table.querySelectorAll("[data-test]").forEach((b) =>
+  container.querySelectorAll("[data-move]").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      await moveSource(btn.dataset.url, Number(btn.dataset.move) || 0);
+    })
+  );
+
+  container.querySelectorAll("[data-test]").forEach((b) =>
     b.addEventListener("click", async () => {
       b.disabled = true;
       b.textContent = "…";
       const res = await window.api.testSource(b.dataset.test);
       b.disabled = false;
-      b.textContent = res.ok ? `${res.items} ✓` : "αποτυχία";
+      b.textContent = res.ok ? `${res.items} ✓` : t("sources.testFail");
       if (res.ok) setTimeout(refreshSources, 1200);
     })
   );
 
-  table.querySelectorAll("[data-remove]").forEach((b) =>
+  container.querySelectorAll("[data-remove]").forEach((b) =>
     b.addEventListener("click", async () => {
       await window.api.removeSource(b.dataset.remove);
       await refreshSources();
@@ -737,12 +882,98 @@ async function refreshSources() {
   );
 }
 
+function renderSourcesTable() {
+  const table = $("#sourceList");
+  if (!table) return;
+  table.innerHTML = `
+    <div class="trow trow--head">
+      <span></span><span></span><span>${t("sources.col.on")}</span><span>${t("sources.col.source")}</span><span>${t("sources.col.status")}</span><span>${t("sources.col.items")}</span><span>${t("sources.col.method")}</span><span>${t("sources.col.weight")}</span><span></span>
+    </div>`;
+
+  for (const s of state.sources) {
+    const row = document.createElement("div");
+    row.className = "trow";
+    if (s.active === false) row.classList.add("is-off");
+    row.dataset.dragUrl = s.url;
+    const weight = sourceWeight(
+      state.weights[s.key] ?? state.weights[s.name] ?? state.weights[s.host] ?? 1
+    );
+    row.innerHTML = `
+      <span class="drag" title="${t("sources.reorderTitle")}">⠿</span>
+      <span class="dot dot--${s.status || "unknown"}"></span>
+      <span><input class="sactive" type="checkbox" data-url="${esc(s.url)}" ${s.active === false ? "" : "checked"}
+                   title="${t("sources.activeTitle")}"></span>
+      <span class="trow__url" title="${esc(s.url)}">
+        <span class="trow__name">${esc(s.name || s.host)}</span>
+        <span class="trow__host">${esc(s.url)}</span>
+      </span>
+      <span>${s.status ? statusLabel(s.status) : "—"}</span>
+      <span>${s.items ?? "—"}</span>
+      <span>${esc(s.method || "—")}</span>
+      <span><input class="winput" type="number" min="0.3" max="2" step="0.1" value="${weight.toFixed(1)}"
+                   data-key="${esc(s.key)}" title="${t("sources.weightTitle")}"></span>
+      <span class="trow__actions"><button class="tbtn" data-test="${esc(s.url)}">${t("common.test")}</button>
+            <button class="tbtn" data-remove="${esc(s.url)}">×</button></span>`;
+    table.appendChild(row);
+  }
+
+  bindSourceActions(table);
+  attachSourceDrag(table);
+}
+
+function renderSectionList() {
+  const box = $("#sectionList");
+  if (!box) return;
+  if (!state.sources.length) {
+    box.innerHTML = `<p class="hint">${t("settings.sourcesEmpty")}</p>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="section-row section-row--head">
+      <span></span><span>${t("sources.col.on")}</span><span>${t("sources.col.source")}</span><span>${t("settings.sourceItems")}</span><span>${t("settings.sourceWeight")}</span><span>${t("settings.sourcePages")}</span><span></span>
+    </div>`;
+
+  for (const s of state.sources) {
+    const row = document.createElement("div");
+    row.className = "section-row";
+    if (s.active === false) row.classList.add("is-off");
+    row.dataset.dragUrl = s.url;
+    const weight = sourceWeight(
+      state.weights[s.key] ?? state.weights[s.name] ?? state.weights[s.host] ?? 1
+    );
+    const pages = sourcePages(weight);
+    row.innerHTML = `
+      <span class="drag" title="${t("sources.reorderTitle")}">⠿</span>
+      <span><input class="sactive" type="checkbox" data-url="${esc(s.url)}" ${s.active === false ? "" : "checked"}
+                   title="${t("sources.activeTitle")}"></span>
+      <span class="section-row__name" title="${esc(s.url)}">
+        <span>${esc(s.name || s.host)}</span>
+        <small>${esc(s.url)}</small>
+      </span>
+      <span class="section-row__items">${s.items ?? "—"}</span>
+      <span><input class="winput" type="number" min="0.3" max="2" step="0.1" value="${weight.toFixed(1)}"
+                   data-key="${esc(s.key)}" title="${t("sources.weightTitle")}"></span>
+      <span class="pages-badge" title="${t("settings.sourcePagesHint")}">${t("sources.pagesShort", { n: pages })}</span>
+      <span class="section-row__move">
+        <button type="button" class="tbtn" data-move="-1" data-url="${esc(s.url)}" title="${t("settings.moveUp")}">↑</button>
+        <button type="button" class="tbtn" data-move="1" data-url="${esc(s.url)}" title="${t("settings.moveDown")}">↓</button>
+      </span>`;
+    box.appendChild(row);
+  }
+
+  bindSourceActions(box);
+  attachSourceDrag(box);
+}
+
+$("#btnManageSources")?.addEventListener("click", () => showView("sources"));
+
 $("#addSourceForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = $("#newSource");
   const res = await window.api.addSource(input.value);
   if (!res.ok) {
-    input.setCustomValidity(res.error === "duplicate" ? "Υπάρχει ήδη" : "Μη έγκυρο URL");
+    input.setCustomValidity(res.error === "duplicate" ? t("sources.duplicate") : t("sources.invalid"));
     input.reportValidity();
     input.setCustomValidity("");
     return;
@@ -767,6 +998,7 @@ async function loadSettings() {
   const data = await window.api.settings();
   if (!data) return;
   state.settings = data;
+  state.weights = data.weights || {};
 
   const form = $("#settingsForm");
   ["edition.name", "edition.name_en", "limits.lead", "limits.featured", "limits.story",
@@ -788,12 +1020,12 @@ async function loadSettings() {
 
   const trendsEnabled = form.querySelector('[name="trends.enabled"]');
   if (trendsEnabled) {
-    const t = data.trends || {};
-    trendsEnabled.checked = t.enabled !== false;
+    const tr = data.trends || {};
+    trendsEnabled.checked = tr.enabled !== false;
     const country = form.querySelector('[name="trends.country"]');
-    if (country) country.value = String(t.country || "GR").toUpperCase();
+    if (country) country.value = String(tr.country || "GR").toUpperCase();
     const perPage = form.querySelector('[name="trends.per_page"]');
-    if (perPage) perPage.value = Number(t.per_page || 10);
+    if (perPage) perPage.value = Number(tr.per_page || 10);
   }
 
   const schedEnabled = form.querySelector('[name="schedule.enabled"]');
@@ -801,23 +1033,11 @@ async function loadSettings() {
   const schedAt = form.querySelector('[name="schedule.at"]');
   if (schedAt) schedAt.value = data.schedule?.at || "07:00";
 
-  const box = $("#sectionPages");
-  box.innerHTML = "";
-  for (const section of data.sections || []) {
-    const label = document.createElement("label");
-    label.textContent = section.el;
-    const input = document.createElement("input");
-    input.type = "number";
-    input.min = "1";
-    input.max = "6";
-    input.value = section.pages;
-    input.dataset.key = section.key;
-    label.appendChild(input);
-    box.appendChild(label);
-  }
+  renderSectionList();
 }
 
-$("#settingsForm").addEventListener("submit", async (e) => {  e.preventDefault();
+$("#settingsForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
   const form = e.target;
   const data = JSON.parse(JSON.stringify(state.settings));
   ["edition.name", "edition.name_en", "limits.lead", "limits.featured", "limits.story",
@@ -841,13 +1061,11 @@ $("#settingsForm").addEventListener("submit", async (e) => {  e.preventDefault()
   data.trends.country = form.querySelector('[name="trends.country"]').value || "GR";
   data.trends.per_page = Math.max(5, Math.min(12, Number(form.querySelector('[name="trends.per_page"]').value) || 10));
 
-  form.querySelectorAll("#sectionPages input").forEach((input) => {
-    const section = data.sections.find((s) => s.key === input.dataset.key);
-    if (section) section.pages = Number(input.value);
-  });
+  // Οι ενότητες είναι πλέον πηγές· το παλιό κλειδί φεύγει από το settings.json.
+  delete data.sections;
 
   const res = await window.api.saveSettings(data);
-  $("#saveHint").textContent = res.ok ? "Αποθηκεύτηκε — εφαρμόζεται στο επόμενο φύλλο." : "Σφάλμα αποθήκευσης.";
+  $("#saveHint").textContent = res.ok ? t("settings.saved") : t("settings.saveError");
   if (res.ok && res.settings) state.settings = res.settings;
   setTimeout(() => ($("#saveHint").textContent = ""), 4000);
 });
@@ -857,7 +1075,7 @@ $("#btnPdfDir")?.addEventListener("click", async () => {
   const res = await window.api.pickFolder(input?.value || "");
   if (res?.ok && input) {
     input.value = res.path;
-    $("#saveHint").textContent = "Πάτησε «Αποθήκευση» για να ισχύσει.";
+    $("#saveHint").textContent = t("settings.pressSave");
     setTimeout(() => ($("#saveHint").textContent = ""), 5000);
   }
 });
@@ -865,7 +1083,7 @@ $("#btnPdfDir")?.addEventListener("click", async () => {
 $("#btnPdfDirClear")?.addEventListener("click", () => {
   const input = document.querySelector('[name="runtime.pdf_dir"]');
   if (input) input.value = "";
-  $("#saveHint").textContent = "Επαναφορά στην προεπιλογή — πάτησε «Αποθήκευση».";
+  $("#saveHint").textContent = t("settings.resetHint");
   setTimeout(() => ($("#saveHint").textContent = ""), 5000);
 });
 
@@ -876,8 +1094,8 @@ async function refreshSchedule() {
   const res = await window.api.scheduleGet();
   if (!res) return;
   hint.textContent = res.task?.exists
-    ? `HmerisiaDaily · ${res.task.state} · επόμενη ${res.task.next || "—"}`
-    : "Δεν υπάρχει προγραμματισμένη εργασία.";
+    ? t("schedule.task", { state: res.task.state, next: res.task.next || "—" })
+    : t("schedule.none");
 }
 
 $("#btnSchedule")?.addEventListener("click", async () => {
@@ -886,22 +1104,27 @@ $("#btnSchedule")?.addEventListener("click", async () => {
   const enabled = form.querySelector('[name="schedule.enabled"]').checked;
   const hint = $("#scheduleHint");
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(at)) {
-    hint.textContent = "Δώσε ώρα σε μορφή HH:mm (π.χ. 07:00).";
+    hint.textContent = t("settings.invalidTime");
     return;
   }
-  hint.textContent = "Εφαρμογή στο Windows…";
+  hint.textContent = t("settings.applying");
   const res = await window.api.scheduleApply({ at, enabled });
-  hint.textContent = res.ok
-    ? `Αποθηκεύτηκε · ${res.task?.exists ? `${res.task.state} · επόμενη ${res.task.next}` : "χωρίς εργασία"}`
-    : `Αποτυχία: ${res.error || (res.output || "").slice(-120)}`;
+  if (!res.ok) {
+    hint.textContent = t("settings.applyFail", { error: res.error || (res.output || "").slice(-120) });
+  } else {
+    const task = res.task?.exists
+      ? `${res.task.state} · ${t("schedule.next")} ${res.task.next}`
+      : t("settings.noTask");
+    hint.textContent = t("settings.applied", { task });
+  }
   setTimeout(refreshSchedule, 2000);
 });
 
 $("#btnScheduleRemove")?.addEventListener("click", async () => {
   const hint = $("#scheduleHint");
-  hint.textContent = "Απενεργοποίηση…";
+  hint.textContent = t("settings.disabling");
   const res = await window.api.scheduleRemove();
-  hint.textContent = res.ok ? "Η αυτόματη έκδοση απενεργοποιήθηκε." : "Αποτυχία απενεργοποίησης.";
+  hint.textContent = res.ok ? t("settings.disabled") : t("settings.disableFail");
   setTimeout(refreshSchedule, 1500);
 });
 
@@ -915,20 +1138,24 @@ async function refreshCleanupPreview() {
   const box = $("#cleanupPreview");
   cleanupPlan = null;
   updateCleanupButton();
-  box.textContent = "Υπολογισμός…";
+  box.textContent = t("cleanup.calculating");
   const plan = await window.api.cleanupPreview({ keepDays: keep, cache });
   if (!plan.ok) {
-    box.textContent = `Σφάλμα: ${plan.error || "άγνωστο"}`;
+    box.textContent = t("cleanup.error", { error: plan.error || t("common.unknown") });
     cleanupPlan = null;
     updateCleanupButton();
     return;
   }
   cleanupPlan = plan;
-  const lines = [`${plan.editions.length} φύλλα · ${plan.total_mb} MB · cache ${cache ? "ναι" : "όχι"}`];
+  const lines = [t("cleanup.summary", {
+    editions: plan.editions.length,
+    mb: plan.total_mb,
+    cache: cache ? t("cleanup.cacheYes") : t("cleanup.cacheNo"),
+  })];
   for (const e of plan.editions) lines.push(`  ${e.date}  ${e.mb} MB`);
   if (plan.cache?.length) for (const c of plan.cache) lines.push(`  cache/${c.name}  ${c.mb} MB`);
   if (plan.pdfs?.length) {
-    lines.push(`  PDF (${plan.pdf_dir || "φάκελος PDF"}):`);
+    lines.push(`  ${t("cleanup.pdfHeader", { dir: plan.pdf_dir || t("cleanup.pdfDirFallback") })}`);
     for (const p of plan.pdfs) lines.push(`    efimerida-${p.date}.pdf  ${p.mb} MB`);
   }
   box.textContent = lines.join("\n");
@@ -944,10 +1171,10 @@ function updateCleanupButton() {
   btn.disabled = editions + pdfs + caches === 0;
 
   const bits = [];
-  if (editions) bits.push(`${editions} ${editions === 1 ? "φύλλο" : "φύλλα"}`);
-  if (pdfs) bits.push(`${pdfs} PDF`);
-  if (caches) bits.push(`${caches} cache`);
-  btn.textContent = bits.length ? `Διαγραφή ${bits.join(" + ")}` : "Τίποτα για διαγραφή";
+  if (editions) bits.push(editions === 1 ? t("cleanup.editionsOne") : t("cleanup.editionsMany", { n: editions }));
+  if (pdfs) bits.push(t("cleanup.pdfs", { n: pdfs }));
+  if (caches) bits.push(t("cleanup.caches", { n: caches }));
+  btn.textContent = bits.length ? t("cleanup.delete", { what: bits.join(" + ") }) : t("cleanup.none");
 }
 
 $("#btnCleanup")?.addEventListener("click", () => {
@@ -960,7 +1187,7 @@ $("#cleanCache")?.addEventListener("change", refreshCleanupPreview);
 $("#cleanupRun")?.addEventListener("click", async () => {
   if (!cleanupPlan) return;
   $("#cleanupRun").disabled = true;
-  $("#cleanupRun").textContent = "Διαγραφή…";
+  $("#cleanupRun").textContent = t("cleanup.deleting");
   const res = await window.api.cleanupRun({
     keepDays: Number($("#keepDays").value || 7),
     cache: $("#cleanCache").checked,
@@ -975,20 +1202,24 @@ $("#cleanupRun")?.addEventListener("click", async () => {
   $("#progress").hidden = false;
   $("#progressFill").style.width = "100%";
   $("#progressLabel").textContent = res.ok
-    ? `Διαγράφηκαν ${res.editions || 0} φύλλα · ${res.pdfs || 0} PDF · ${res.mb || 0} MB`
-    : `Η διαγραφή απέτυχε: ${res.error || "άγνωστο"}`;
+    ? t("progress.cleanupDone", { editions: res.editions || 0, pdfs: res.pdfs || 0, mb: res.mb || 0 })
+    : t("progress.cleanupFail", { error: res.error || t("common.unknown") });
   setTimeout(() => ($("#progress").hidden = true), res.ok ? 5000 : 8000);
   refreshCleanupPreview();
 });
 
 /* ------------------------------------------------------------ app theme */
 const themeToggle = $("#themeToggle");
+const langToggle = $("#langToggle");
+
+function updateThemeToggle() {
+  const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  if (themeToggle) themeToggle.textContent = t(theme === "dark" ? "theme.toLight" : "theme.toDark");
+}
 
 function applyAppTheme(theme) {
   document.documentElement.dataset.theme = theme;
-  if (themeToggle) {
-    themeToggle.textContent = theme === "dark" ? "☀ Φωτεινό θέμα" : "☾ Σκούρο θέμα";
-  }
+  updateThemeToggle();
   try {
     localStorage.setItem("hmerisia-theme", theme);
   } catch {}
@@ -998,7 +1229,76 @@ themeToggle?.addEventListener("click", () => {
   const current = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   applyAppTheme(current);
 });
-applyAppTheme(document.documentElement.dataset.theme || "dark");
+
+function updateLangToggle() {
+  if (!langToggle) return;
+  const lang = getLang();
+  langToggle.textContent = t(lang === "en" ? "lang.switchToEl" : "lang.switchToEn");
+  langToggle.title = t("lang.title");
+}
+
+function updateCopyLabels() {
+  if (copyTopBtn) {
+    copyTopBtn.dataset.label = t("top.copy");
+    copyTopBtn.textContent = t("top.copy");
+  }
+  if (copyFocusBtn) {
+    copyFocusBtn.dataset.label = "🔗";
+    copyFocusBtn.textContent = "🔗";
+  }
+}
+
+function renderTodayLabel() {
+  const locale = getLang() === "el" ? "el-GR" : "en-GB";
+  $("#todayLabel").textContent = new Date().toLocaleDateString(locale, {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+}
+
+function renderSiteCount() {
+  if (state.sites == null) return;
+  $("#siteCount").textContent = t("rail.sources", { n: state.sites });
+}
+
+function applyLanguage(lang, opts = {}) {
+  const next = setLang(lang);
+  applyI18n();
+  updateLangToggle();
+  updateThemeToggle();
+  renderTodayLabel();
+  renderSiteCount();
+  const sourceHint = $("#sourceHint");
+  if (sourceHint) sourceHint.textContent = "";
+  const saveHint = $("#saveHint");
+  if (saveHint) saveHint.textContent = "";
+  renderEditionMeta();
+  renderRunButton();
+  updateCopyLabels();
+  updateFocusTexts();
+
+  if (uiReady) {
+    if (state.history.length) renderHistory();
+    refreshSources();
+    refreshSchedule();
+    if (state.running && lastProgress && !$("#progress").hidden) {
+      setProgress(lastProgress.stage, lastProgress.pct, lastProgress.extra);
+    }
+    if (cleanupModal && !cleanupModal.hidden) refreshCleanupPreview();
+  }
+
+  if (opts.persist !== false) {
+    try {
+      localStorage.setItem("hmerisia-lang", next);
+    } catch {}
+    try {
+      window.api.uiSet({ lang: next });
+    } catch {}
+  }
+}
+
+langToggle?.addEventListener("click", () => {
+  applyLanguage(getLang() === "en" ? "el" : "en");
+});
 
 const fsRange = document.querySelector('[name="theme.font_scale"]');
 fsRange?.addEventListener("input", () => {
@@ -1006,18 +1306,27 @@ fsRange?.addEventListener("input", () => {
   if (label) label.textContent = Number(fsRange.value).toFixed(2);
 });
 
-/* ------------------------------------------------------------------- init */(async function init() {
+/* ------------------------------------------------------------------- init */
+(async function init() {
+  applyLanguage(localStorage.getItem("hmerisia-lang") || "en", { persist: false });
+  applyAppTheme(document.documentElement.dataset.theme || "dark");
+
   const info = await window.api.info();
+  state.sites = info.sites;
   $("#pyInfo").textContent = `python: ${info.python}`;
-  $("#siteCount").textContent = `${info.sites} πηγές`;
-  $("#todayLabel").textContent = new Date().toLocaleDateString("el-GR", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-  });
+  renderSiteCount();
+  renderTodayLabel();
 
   await refreshHistory();
   await refreshSources();
   await loadSettings();
   await refreshSchedule();
+  uiReady = true;
+
+  try {
+    const ui = await window.api.uiGet();
+    if (ui?.lang && ui.lang !== getLang()) applyLanguage(ui.lang, { persist: false });
+  } catch {}
 
   const today = todayISO();
   if (state.history.some((h) => h.date === today)) {

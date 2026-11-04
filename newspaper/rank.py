@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Κατηγοριοποίηση, βαθμολόγηση και σελιδοποίηση 20 σελίδων."""
+"""Βαθμολόγηση και σελιδοποίηση με μία ενότητα ανά πηγή."""
 from __future__ import annotations
 
 import math
@@ -7,18 +7,11 @@ from datetime import datetime, timezone
 
 from config import (
     BRIEFS_PER_PAGE,
-    CATEGORIES,
-    CATEGORY_KEYWORDS,
-    CATEGORY_LABELS,
     COVER_SECONDARY,
     IMPACT_KEYWORDS,
     PAGE_LAYOUT,
-    PAGE_MAP,
     RECENCY_WINDOW_H,
     SCORE_WEIGHTS,
-    SOURCE_DEFAULT_CATEGORY,
-    SPECIALIST_SOURCES,
-    WEAK_KEYWORDS,
     WEIGHTS,
 )
 
@@ -32,43 +25,8 @@ def _text(item: dict) -> str:
 
 
 def classify(item: dict) -> str:
-    """Επιστρέφει το key της κατηγορίας με τα περισσότερα hits."""
-    if item.get("kind") == "video" or item.get("source_id", "").startswith("yt-"):
-        return "video"
-
-    text = _text(item)
-    title = item.get("title", "").lower()
-    scores: dict[str, float] = {key: 0.0 for key, _, _ in CATEGORIES}
-
-    default = SOURCE_DEFAULT_CATEGORY.get(item.get("source_id"), "news")
-    specialist = item.get("source_id") in SPECIALIST_SOURCES
-    base = 6.0 if specialist else 2.0
-    scores[default] += base
-
-    for cat, words in CATEGORY_KEYWORDS.items():
-        weak = set(WEAK_KEYWORDS.get(cat, []))
-        for word in words:
-            if word in weak:
-                continue
-            if word in title:
-                scores[cat] += 3.5
-            elif word in text:
-                scores[cat] += 0.6
-        for word in weak:
-            if word in title:
-                scores[cat] += 1.2
-            elif word in text:
-                scores[cat] += 0.25
-
-    priority = ["politics", "sports", "economy", "tech", "culture", "news", "video"]
-    best = max(scores, key=lambda k: (scores[k], -priority.index(k)))
-
-    need = base + (2.5 if specialist else 1.0)
-    if best != default and scores[best] < need:
-        return default
-    if scores[best] < 2.0:
-        return default
-    return best
+    """Η ενότητα είναι η πηγή που έφερε το θέμα."""
+    return item.get("source_id") or "other"
 
 
 def importance(item: dict, now: datetime) -> float:
@@ -92,34 +50,92 @@ def importance(item: dict, now: datetime) -> float:
     if item.get("image"):
         total += 4
 
-    # Βάρος πηγής (settings.json → weights), κλειδί domain ή όνομα.
-    weight = float(
-        WEIGHTS.get(item.get("domain") or "")
-        or WEIGHTS.get(item.get("source_name") or "")
-        or 1.0
-    )
+    # Βάρος πηγής (settings.json → weights): domain για sites,
+    # όνομα/handle για YouTube, ώστε κάθε κανάλι να έχει δικό του βάρος.
+    if item.get("kind") == "video" or item.get("source_id", "").startswith("yt-"):
+        raw_weight = (
+            WEIGHTS.get(item.get("source_id") or "")
+            or WEIGHTS.get(item.get("source_name") or "")
+            or WEIGHTS.get(item.get("domain") or "")
+            or 1.0
+        )
+    else:
+        raw_weight = (
+            WEIGHTS.get(item.get("domain") or "")
+            or WEIGHTS.get(item.get("source_id") or "")
+            or WEIGHTS.get(item.get("source_name") or "")
+            or 1.0
+        )
+    try:
+        weight = float(raw_weight)
+    except (TypeError, ValueError):
+        weight = 1.0
     total *= max(0.3, min(2.0, weight))
     return round(min(100.0, total), 1)
 
 
-def rank(items: list[dict], now: datetime | None = None) -> list[dict]:
+def _published_key(item: dict) -> float:
+    """Νεότερα πρώτα σε ισοπαλία score/σειράς πηγής."""
+    try:
+        return -datetime.fromisoformat(item["published"]).timestamp()
+    except Exception:
+        return 0.0
+
+
+def _order_map(sections: list[dict]) -> dict[str, int]:
+    return {s["key"]: int(s.get("order", i)) for i, s in enumerate(sections)}
+
+
+def rank(items: list[dict], now: datetime | None = None,
+         order: dict[str, int] | None = None) -> list[dict]:
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    order = order or {}
     for item in items:
         item["category"] = classify(item)
         item["score"] = importance(item, now)
-    items.sort(key=lambda x: (-x["score"], x["published"]))
+    items.sort(key=lambda x: (
+        -x["score"],
+        order.get(x.get("source_id"), 9999),
+        _published_key(x),
+    ))
     return items
 
 
-def _allocate() -> list[list]:
-    """PAGE_MAP + ανακατανομή σελίδων σε περίπτωση έλλειψης ύλης."""
-    return [[key, count] for key, count in PAGE_MAP]
+def _needed(pool: list[dict], kind: str) -> int:
+    """Πόσες σελίδες αντέχει το υλικό της πηγής (χωρίς κενές τελευταίες)."""
+    available = len(pool)
+    if available <= 0:
+        return 0
+    if kind == "video":
+        return max(1, math.ceil(available / PAGE_LAYOUT["video_page"]))
+    if available <= PAGE_LAYOUT["first_page"]:
+        return 1
+    extra = available - PAGE_LAYOUT["first_page"]
+    pages = 1 + math.ceil(extra / PAGE_LAYOUT["grid_page"])
+    last = available - PAGE_LAYOUT["first_page"] - PAGE_LAYOUT["grid_page"] * (pages - 2)
+    if pages > 1 and last < 4:
+        pages -= 1
+    return max(1, pages)
 
 
-def build_edition(items: list[dict], *, pages_total: int = 20,
-                  start_num: int = 2) -> dict:
-    """Σελιδοποιεί σε σταθερό χάρτη 20 σελίδων."""
-    ranked = sorted(items, key=lambda x: x["score"], reverse=True)
+def build_edition(items: list[dict], section_plan: list[dict] | None = None,
+                  *, start_num: int = 2) -> dict:
+    """Σελιδοποιεί με μία ή περισσότερες σελίδες ανά πηγή.
+
+    Το ``pages`` κάθε ενότητας είναι οδηγός από το βάρος της πηγής:
+    κόβεται αν δεν υπάρχει αρκετό υλικό, αλλά δεν δανείζεται σε άλλες πηγές.
+    """
+    from sections import fallback_section
+
+    section_list = [dict(s) for s in (section_plan or [])]
+    known = {s["key"] for s in section_list}
+    order = _order_map(section_list)
+
+    ranked = sorted(items, key=lambda x: (
+        -x["score"],
+        order.get(x.get("source_id"), 9999),
+        _published_key(x),
+    ))
 
     used: set[str] = set()
     lead = next((x for x in ranked if x.get("image")), ranked[0] if ranked else None)
@@ -132,65 +148,39 @@ def build_edition(items: list[dict], *, pages_total: int = 20,
         item["role"] = "secondary"
         used.add(item["id"])
 
-    pools: dict[str, list[dict]] = {key: [] for key, _, _ in CATEGORIES}
+    pools: dict[str, list[dict]] = {}
     for item in ranked:
         if item["id"] in used:
             continue
-        pools.setdefault(item["category"], []).append(item)
+        key = item.get("category") or item.get("source_id") or "other"
+        if key not in known:
+            if "other" not in known:
+                section_list.append(fallback_section(len(section_list)))
+                known.add("other")
+                order["other"] = len(section_list) - 1
+            key = "other"
+        pools.setdefault(key, []).append(item)
 
-    plan = [[key, count] for key, count in PAGE_MAP
-            if not (key == "video" and not pools.get("video"))]
-    if not any(entry[0] == "video" for entry in plan):
-        # χωρίς κανάλια: οι σελίδες των βίντεο πάνε στις Ειδήσεις
-        plan[0][1] += sum(count for key, count in PAGE_MAP if key == "video")
-
-    def capacity(entry) -> int:
-        key, count = entry
-        if key == "video":
-            return PAGE_LAYOUT["video_page"] * count
-        return PAGE_LAYOUT["first_page"] + PAGE_LAYOUT["grid_page"] * (count - 1)
-
-    def needed(key: str) -> int:
-        available = len(pools.get(key, []))
-        if key == "video":
-            return max(1, math.ceil(available / PAGE_LAYOUT["video_page"]))
-        if available <= PAGE_LAYOUT["first_page"]:
-            return 1
-        extra = available - PAGE_LAYOUT["first_page"]
-        pages = 1 + math.ceil(extra / PAGE_LAYOUT["grid_page"])
-        # μια τελευταία σελίδα με 1–3 θέματα δεν αξίζει· τα θέματα μένουν εκτός
-        last = available - PAGE_LAYOUT["first_page"] - PAGE_LAYOUT["grid_page"] * (pages - 2)
-        if pages > 1 and last < 4:
-            pages -= 1
-        return pages
-
-    # --- περισσότερες σελίδες από την ύλη → οι πλεονάζουσες πάνε αλλού ----
-    surplus = 0
-    for entry in plan:
-        want = needed(entry[0])
-        if entry[1] > want:
-            surplus += entry[1] - want
-            entry[1] = want
-
-    while surplus > 0:
-        best = None
-        best_slack = 0
-        for entry in plan:
-            key = entry[0]
-            if key == "video":
-                continue
-            slack = len(pools.get(key, [])) - capacity(entry)
-            if slack > best_slack:
-                best, best_slack = entry, slack
-        if not best:
-            break
-        best[1] += 1
-        surplus -= 1
+    plan: list[tuple[dict, int]] = []
+    for section in section_list:
+        pool = pools.get(section["key"], [])
+        if not pool:
+            continue
+        target = max(0, int(section.get("pages", 1)))
+        if target <= 0:
+            continue
+        kind = section.get("kind", "grid")
+        count = min(target, _needed(pool, kind))
+        if count > 0:
+            plan.append((section, count))
 
     pages: list[dict] = []
     num = start_num
-    for key, count in plan:
-        label_el, label_en = CATEGORY_LABELS[key]
+    for section, count in plan:
+        key = section["key"]
+        label_el = section.get("label_el") or section.get("name") or key
+        label_en = section.get("label_en") or ""
+        kind = section.get("kind", "grid")
         pool = pools.get(key, [])
 
         for index in range(count):
@@ -199,6 +189,7 @@ def build_edition(items: list[dict], *, pages_total: int = 20,
                 "key": key,
                 "label_el": label_el,
                 "label_en": label_en,
+                "source_name": section.get("name") or label_el,
                 "section_page": index + 1,
                 "section_pages": count,
                 "featured": None,
@@ -207,7 +198,7 @@ def build_edition(items: list[dict], *, pages_total: int = 20,
                 "kind": "grid",
             }
 
-            if key == "video":
+            if kind == "video":
                 page["kind"] = "video"
                 page["stories"] = pool[: PAGE_LAYOUT["video_page"]]
                 del pool[: PAGE_LAYOUT["video_page"]]
@@ -253,24 +244,37 @@ def build_edition(items: list[dict], *, pages_total: int = 20,
         "pages": pages,
         "briefs": briefs,
         "today": today,
-        "numbers": numbers(pages, items, briefs),
+        "numbers": numbers(pages, items, briefs, section_list),
     }
 
 
-def numbers(pages: list[dict], items: list[dict], briefs: list[dict]) -> dict:
-    """Στοιχεία για τη σελίδα «ΤΟ ΦΥΛΛΟ ΜΕ ΑΡΙΘΜΟΥΣ»."""
-    counts = {key: 0 for key, _, _ in CATEGORIES}
+def numbers(pages: list[dict], items: list[dict], briefs: list[dict],
+            sections: list[dict]) -> dict:
+    """Στοιχεία για τη σελίδα «ΤΟ ΦΥΛΛΟ ΜΕ ΑΡΙΘΜΟΥΣ» — ανά πηγή."""
+    counts = {s["key"]: 0 for s in sections}
     for item in items:
-        counts[item.get("category", "news")] = counts.get(item.get("category", "news"), 0) + 1
+        key = item.get("category") or item.get("source_id") or "other"
+        counts[key] = counts.get(key, 0) + 1
+
+    rows = [
+        {
+            "key": s["key"],
+            "el": s.get("label_el") or s.get("name") or s["key"],
+            "en": s.get("label_en") or "",
+            "count": counts.get(s["key"], 0),
+        }
+        for s in sections
+    ]
 
     sources = {item.get("source_name", "") for item in items if item.get("source_name")}
     published = sorted(item["published"] for item in items if item.get("published"))
     with_image = sum(1 for item in items if item.get("image"))
-    video = sum(1 for page in pages if page["key"] == "video" for _ in page["stories"])
+    video = sum(1 for page in pages if page.get("kind") == "video" for _ in page["stories"])
 
     return {
         "total": len(items),
         "counts": counts,
+        "rows": rows,
         "sources": len(sources),
         "first_time": published[0][11:16] if published else "—",
         "last_time": published[-1][11:16] if published else "—",

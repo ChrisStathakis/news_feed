@@ -411,6 +411,8 @@ a{ color:inherit; text-decoration:none; }
   font-family:var(--mono); font-size:calc(6.4pt * var(--fs)); letter-spacing:.2em;
   color:var(--faded); font-weight:400;
 }
+/* Μεγάλα ονόματα πηγών (π.χ. «THE ALL-AROUNDERS») να μη σπάνε τη γραμμή. */
+.section-title--long{ font-size:calc(16pt * var(--fs)); letter-spacing:0; }
 .section-head__page{
   font-family:var(--mono); font-size:calc(6.2pt * var(--fs)); letter-spacing:.14em;
   color:var(--ink-soft); white-space:nowrap;

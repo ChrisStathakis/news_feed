@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """Ρυθμίσεις για την εφημερίδα «Η Ημερήσια».
 
-Οι τιμές έκδοσης (τίτλος, ενότητες, σελίδες, όρια, θέμα) έρχονται από
-το settings.json μέσω του settings.py. Εδώ μένουν μόνο τα σταθερά
-μονοπάτια και η γλωσσική/βαθμολογική λογική.
+Οι τιμές έκδοσης (τίτλος, όρια, θέμα, βάρη) έρχονται από το settings.json
+μέσω του settings.py. Οι ενότητες είναι πλέον οι πηγές του sites.txt και
+χτίζονται δυναμικά στο sections.py. Εδώ μένουν τα σταθερά μονοπάτια και η
+γλωσσική/βαθμολογική λογική.
 """
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -27,13 +28,9 @@ EDITION_NAME = S["edition"]["name"]
 EDITION_NAME_EN = S["edition"]["name_en"]
 EDITION_TAGLINE = S["edition"]["tagline"]
 
-# ---------------------------------------------------------------- κατηγορίες
-# Σταθερή σειρά εμφάνισης. Οι σελίδες ανά ενότητα ορίζονται στο settings.json.
-CATEGORIES = [(s["key"], s["el"], s["en"]) for s in S["sections"]]
-CATEGORY_LABELS = {k: (el, en) for k, el, en in CATEGORIES}
-
-PAGE_MAP = [(s["key"], int(s.get("pages", 1))) for s in S["sections"]]
-TOTAL_PAGES = settings.total_pages(S)
+# ---------------------------------------------------------------- ενότητες
+# Οι ενότητες είναι πλέον οι ίδιες οι πηγές, με τη σειρά του sites.txt.
+# Η ανάλυσή τους γίνεται δυναμικά στο sections.py.
 COVER_SECONDARY = int(S["layout"]["cover_secondary"])
 BRIEFS_PER_PAGE = int(S["layout"]["briefs_per_page"])
 
@@ -186,71 +183,3 @@ IMPACT_KEYWORDS = [
     "ρεκόρ", "πληθωρισμός", "ύφεση", "χρεοκοπία", "πρωτάθλημα", "τελικός",
     "απόφαση", "δικαστήριο", "διαμαρτυρία", "έκτακτο",
 ]
-
-CATEGORY_KEYWORDS = {
-    "news": [
-        "world", "international", "breaking", "earthquake", "storm", "climate",
-        "migration", "refugee", "united nations", "nato", "conflict",
-        "κόσμος", "σεισμός", "κακοκαιρία", "κλίμα", "μετανάστ", "προσφυγ",
-        "νατο", "σύγκρουση", "έκτακτο",
-    ],
-    "politics": [
-        "election", "government", "minister", "parliament", "president",
-        "senate", "congress", "prime minister", "policy", "sanctions", "war",
-        "diplomat", "vote", "coalition", "trump", "putin", "eu ",
-        "εκλογ", "κυβέρνηση", "υπουργ", "βουλή", "πρόεδρος", "πολιτικ",
-        "ψήφισ", "διπλωματ", "κυρώσεις", "πόλεμος", "σύνοδος κορυφής",
-        "τρουμπ", "πουτιν", "ευρωπαϊκή ένωση",
-    ],
-    "sports": [
-        "nba", "euroleague", "basketball", "football", "soccer", "match",
-        "game", "team", "player", "coach", "playoff", "final", "season",
-        "trade", "draft", "injury", "olympiacos", "panathinaikos",
-        "μπάσκετ", "ποδόσφαιρο", "αγώνας", "ομάδα", "παίκτης", "προπονητής",
-        "τελικός", "πρωτάθλημα", "ολυμπιακός", "παναθηναϊκός", "τραυματισμ",
-    ],
-    "economy": [
-        "market", "stocks", "shares", "inflation", "fed", "interest rate",
-        "earnings", "revenue", "oil", "gold", "dollar", "euro", "gdp",
-        "tariff", "economy", "investors", "wall street", "bitcoin", "crypto",
-        "χρηματιστήριο", "οικονομία", "πληθωρισμός", "επιτόκια", "ευρώ",
-        "πετρέλαιο", "αγορές", "επενδυτ", "τράπεζ", "ανάπτυξη", "α.επ",
-    ],
-    "tech": [
-        "ai", "artificial intelligence", "apple", "google", "microsoft",
-        "playstation", "xbox", "nintendo", "steam", "gaming", "game",
-        "software", "chip", "openai", "tesla", "cyber", "hack", "review",
-        "τεχνητή νοημοσύνη", "τεχνολογ", "κονσόλα", "παιχνίδι", "εφαρμογ",
-        "κυβερνο", "ηλεκτρονικ",
-    ],
-    "culture": [
-        "film", "movie", "actor", "actress", "series", "music", "album",
-        "oscar", "emmy", "celebrity", "director", "netflix", "box office",
-        "trailer", "premiere", "dies at",
-        "ταινία", "ηθοποι", "σειρά", "μουσικ", "άλμπουμ", "όσκαρ",
-        "σκηνοθέτ", "πρεμιέρα", "θάνατος",
-    ],
-}
-
-# Λέξεις που εμφανίζονται σε πολλές κατηγορίες — μετράνε λιγότερο.
-WEAK_KEYWORDS = {
-    "sports": ["match", "game", "team", "player", "coach", "season", "final",
-               "trade", "draft", "injury", "αγώνας", "ομάδα", "παίκτης",
-               "σεζόν", "τελικός", "προπονητής"],
-    "economy": ["market", "shares", "investors", "oil", "gold", "dollar",
-                "αγορές", "επενδυτ", "τράπεζ"],
-    "tech": ["game", "software", "review", "παιχνίδι", "εφαρμογ"],
-    "culture": ["series", "film", "movie", "album", "σειρά", "μουσικ"],
-    "politics": ["policy", "vote", "πολιτικ"],
-    "news": ["world", "breaking", "κόσμος", "έκτακτο"],
-}
-
-# Προεπιλογή ανά πηγή, ώστε να μην πάνε όλα στο «news».
-SOURCE_DEFAULT_CATEGORY = {s["id"]: s["category"] for s in SOURCES}
-
-# Πηγές με σαφή θεματική ταυτότητα: μένουν στην κατηγορία τους
-# εκτός αν οι λέξεις-κλειδιά άλλης κατηγορίας κερδίζουν καθαρά.
-SPECIALIST_SOURCES = {"gamespot", "imdb", "yahoo", "nba", "euroleague"}
-
-# Πόσα items ζητάμε συνολικά ανά κατηγορία πριν το κόψιμο της σελίδας.
-CATEGORY_POOL = 12

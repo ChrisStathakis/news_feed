@@ -1,11 +1,13 @@
 <!doctype html>
-<html lang="el">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Η ΗΜΕΡΗΣΙΑ</title>
 <script>
   try {
     document.documentElement.dataset.theme = localStorage.getItem("hmerisia-theme") || "dark";
+    var _lang = localStorage.getItem("hmerisia-lang");
+    if (_lang === "el" || _lang === "en") document.documentElement.lang = _lang;
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="styles.css">
@@ -18,16 +20,17 @@
   </div>
 
   <nav class="nav">
-    <button class="nav__item is-active" data-view="today">Σημερινό φύλλο</button>
-    <button class="nav__item" data-view="history">Ιστορικό</button>
-    <button class="nav__item" data-view="sources">Πηγές</button>
-    <button class="nav__item" data-view="settings">Ρυθμίσεις</button>
+    <button class="nav__item is-active" data-view="today" data-i18n="nav.today">Today's edition</button>
+    <button class="nav__item" data-view="history" data-i18n="nav.history">History</button>
+    <button class="nav__item" data-view="sources" data-i18n="nav.sources">Sources</button>
+    <button class="nav__item" data-view="settings" data-i18n="nav.settings">Settings</button>
   </nav>
 
   <div class="rail__foot">
     <span id="pyInfo">python —</span>
-    <span id="siteCount">— πηγές</span>
-    <button class="theme-toggle" id="themeToggle" type="button">☀ Φωτεινό θέμα</button>
+    <span id="siteCount">— sources</span>
+    <button class="theme-toggle" id="themeToggle" type="button" data-i18n="theme.toLight">☀ Light theme</button>
+    <button class="theme-toggle" id="langToggle" type="button" data-i18n="lang.switchToEl">ΕΛ · Ελληνικά</button>
   </div>
 </aside>
 
@@ -40,55 +43,55 @@
       <span class="topbar__domain" id="navDomain"></span>
     </div>
     <div class="topbar__right">
-      <button class="btn btn--ghost btn--nav" id="btnBack" title="Πίσω" disabled>← Πίσω</button>
-      <button class="btn btn--ghost btn--nav" id="btnHome" title="Επιστροφή στο φύλλο">⌂ Φύλλο</button>
-      <button class="btn btn--ghost" id="btnCopy" hidden title="Αντιγραφή συνδέσμου (Ctrl+Shift+C)">🔗 URL</button>
-      <button class="btn btn--ghost" id="zoomOut" title="Σμίκρυνση">−</button>
-      <button class="btn btn--ghost" id="zoomFit" title="Προσαρμογή">Fit</button>
-      <button class="btn btn--ghost" id="zoomIn" title="Μεγέθυνση">+</button>
-      <button class="btn btn--ghost" id="btnPrint" title="Εκτύπωση (Ctrl+P)">Εκτύπωση</button>
-      <button class="btn btn--ghost" id="btnExport" title="Εξαγωγή PDF">PDF</button>
-      <button class="btn btn--ghost" id="btnBrowser" title="Άνοιγμα σε browser">Browser</button>
-      <button class="btn btn--ghost" id="btnFullscreen" title="Πλήρης οθόνη (F11)">⛶ Full</button>
-      <button class="btn btn--primary" id="btnRun">Νέο φύλλο</button>
+      <button class="btn btn--ghost btn--nav" id="btnBack" data-i18n="top.back" data-i18n-title="top.backTitle" disabled>← Back</button>
+      <button class="btn btn--ghost btn--nav" id="btnHome" data-i18n="top.home" data-i18n-title="top.homeTitle">⌂ Edition</button>
+      <button class="btn btn--ghost" id="btnCopy" hidden data-i18n="top.copy" data-i18n-title="top.copyTitle">🔗 URL</button>
+      <button class="btn btn--ghost" id="zoomOut" data-i18n-title="top.zoomOutTitle" title="Zoom out">−</button>
+      <button class="btn btn--ghost" id="zoomFit" data-i18n="top.zoomFit" data-i18n-title="top.zoomFitTitle">Fit</button>
+      <button class="btn btn--ghost" id="zoomIn" data-i18n-title="top.zoomInTitle" title="Zoom in">+</button>
+      <button class="btn btn--ghost" id="btnPrint" data-i18n="top.print" data-i18n-title="top.printTitle">Print</button>
+      <button class="btn btn--ghost" id="btnExport" data-i18n-title="top.exportTitle">PDF</button>
+      <button class="btn btn--ghost" id="btnBrowser" data-i18n-title="top.browserTitle">Browser</button>
+      <button class="btn btn--ghost" id="btnFullscreen" data-i18n="top.full" data-i18n-title="top.fullTitle">⛶ Full</button>
+      <button class="btn btn--primary" id="btnRun" data-i18n="top.newEdition">New edition</button>
     </div>
   </header>
 
   <div class="progress" id="progress" hidden>
     <div class="progress__bar"><span id="progressFill"></span></div>
-    <span class="progress__label" id="progressLabel">Προετοιμασία…</span>
-    <button class="progress__stop" id="btnStop" type="button" hidden title="Διακοπή έκδοσης">■ Στοπ</button>
+    <span class="progress__label" id="progressLabel">Preparing…</span>
+    <button class="progress__stop" id="btnStop" type="button" hidden data-i18n-title="progress.stopTitle">■ Stop</button>
   </div>
 
   <section class="view is-active" id="view-today">
     <div class="empty" id="todayEmpty">
-      <h2>Δεν υπάρχει φύλλο για σήμερα</h2>
-      <p>Πάτησε «Νέο φύλλο» για να συλλέξει ειδήσεις και να το συντάξει.</p>
+      <h2 data-i18n="today.emptyTitle">No edition for today</h2>
+      <p data-i18n="today.emptyBody">Press “New edition” to collect news and compose it.</p>
     </div>
     <webview id="reader" src="about:blank" allowpopups></webview>
 
     <div class="focus__hotzone" id="focusHotzone"></div>
 
     <div class="focusbar" id="focusBar" hidden>
-      <button class="focusbar__btn focusbar__btn--back" id="focusBack" title="Πίσω στο φύλλο" disabled>← Πίσω</button>
-      <button class="focusbar__btn" id="focusHome" title="Επιστροφή στο φύλλο">⌂ Φύλλο</button>
+      <button class="focusbar__btn focusbar__btn--back" id="focusBack" data-i18n="top.back" data-i18n-title="focus.backTitle" disabled>← Back</button>
+      <button class="focusbar__btn" id="focusHome" data-i18n="top.home" data-i18n-title="focus.homeTitle">⌂ Edition</button>
       <span class="focusbar__domain" id="focusDomain"></span>
-      <button class="focusbar__btn" id="focusCopy" hidden title="Αντιγραφή συνδέσμου (Ctrl+Shift+C)">🔗</button>
+      <button class="focusbar__btn" id="focusCopy" hidden data-i18n-title="top.copyTitle">🔗</button>
       <span class="focusbar__sep"></span>
-      <button class="focusbar__btn" id="focusZoomOut" title="Σμίκρυνση">−</button>
-      <button class="focusbar__btn" id="focusFit" title="Προσαρμογή">Fit</button>
-      <button class="focusbar__btn" id="focusZoomIn" title="Μεγέθυνση">+</button>
+      <button class="focusbar__btn" id="focusZoomOut" data-i18n-title="top.zoomOutTitle">−</button>
+      <button class="focusbar__btn" id="focusFit" data-i18n="top.zoomFit" data-i18n-title="top.zoomFitTitle">Fit</button>
+      <button class="focusbar__btn" id="focusZoomIn" data-i18n-title="top.zoomInTitle">+</button>
       <span class="focusbar__sep"></span>
-      <button class="focusbar__btn" id="focusPrint" title="Εκτύπωση (Ctrl+P)">Εκτύπωση</button>
-      <button class="focusbar__btn focusbar__btn--exit" id="focusExit" title="Έξοδος (Esc)">✕</button>
+      <button class="focusbar__btn" id="focusPrint" data-i18n="top.print" data-i18n-title="top.printTitle">Print</button>
+      <button class="focusbar__btn focusbar__btn--exit" id="focusExit" data-i18n-title="focus.exitTitle" title="Exit full screen (Esc)">✕</button>
     </div>
   </section>
 
   <section class="view" id="view-history">
     <div class="panel">
       <div class="panel__head">
-        <h2>Ιστορικό φύλλων</h2>
-        <button class="btn" id="btnCleanup" type="button">Διαγραφή παλαιών</button>
+        <h2 data-i18n="history.title">Edition history</h2>
+        <button class="btn" id="btnCleanup" type="button" data-i18n="history.cleanup">Clean up old</button>
       </div>
       <div class="cards" id="historyList"></div>
     </div>
@@ -96,11 +99,11 @@
 
   <section class="view" id="view-sources">
     <div class="panel">
-      <h2>Πηγές</h2>
-      <p class="hint">Sites και κανάλια YouTube. Κάθε νέα πηγή δοκιμάζεται αυτόματα.</p>
+      <h2 data-i18n="sources.title">Sources</h2>
+      <p class="hint" data-i18n="sources.hint">Sites and YouTube channels. Every new source is tested automatically.</p>
       <form class="row" id="addSourceForm">
-        <input id="newSource" type="url" placeholder="https://www.example.com/  ή  https://www.youtube.com/@channel" required>
-        <button class="btn btn--primary" type="submit">Προσθήκη</button>
+        <input id="newSource" type="url" data-i18n-placeholder="sources.placeholder" placeholder="https://www.example.com/  or  https://www.youtube.com/@channel" required>
+        <button class="btn btn--primary" type="submit" data-i18n="common.add">Add</button>
       </form>
       <p class="hint" id="sourceHint"></p>
       <div class="table" id="sourceList"></div>
@@ -109,147 +112,153 @@
 
   <section class="view" id="view-settings">
     <div class="panel">
-      <h2>Ρυθμίσεις</h2>
+      <h2 data-i18n="settings.title">Settings</h2>
       <form id="settingsForm" class="settings">
         <fieldset>
-          <legend>Έκδοση</legend>
-          <label>Τίτλος <input name="edition.name" type="text"></label>
-          <label>Υπότιτλος <input name="edition.name_en" type="text"></label>
+          <legend data-i18n="settings.edition">Edition</legend>
+          <label><span data-i18n="settings.titleField">Title</span><input name="edition.name" type="text"></label>
+          <label><span data-i18n="settings.subtitleField">Subtitle</span><input name="edition.name_en" type="text"></label>
         </fieldset>
 
         <fieldset>
-          <legend>Σελίδες ανά ενότητα</legend>
-          <div class="grid" id="sectionPages"></div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Όρια λέξεων</legend>
-          <div class="grid">
-            <label>Lead <input name="limits.lead" type="number" min="100" max="2000"></label>
-            <label>Featured <input name="limits.featured" type="number" min="100" max="1500"></label>
-            <label>Θέμα <input name="limits.story" type="number" min="60" max="800"></label>
-            <label>Σύντομο <input name="limits.brief" type="number" min="20" max="300"></label>
-            <label>Βίντεο <input name="limits.video" type="number" min="40" max="600"></label>
+          <legend data-i18n="settings.sources">Sections per source</legend>
+          <p class="hint" data-i18n="settings.sourcesHint">Every active source becomes its own section, in this order. Drag rows to reorder. The weight sets the page budget (2.0 → up to 2 pages, if enough stories).</p>
+          <div class="section-list" id="sectionList"></div>
+          <p class="hint" data-i18n="settings.sourcePagesHint">Pages are a guideline: a source with few stories gets fewer pages.</p>
+          <p class="hint" id="sectionsHint"></p>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" type="button" id="btnManageSources" data-i18n="settings.manageSources">Manage sources…</button>
           </div>
         </fieldset>
 
         <fieldset>
-          <legend>Εμφάνιση</legend>
+          <legend data-i18n="settings.limits">Word limits</legend>
           <div class="grid">
-            <label>Χαρτί <input name="theme.paper" type="color"></label>
-            <label>Μελάνι <input name="theme.ink" type="color"></label>
-            <label>Έμφαση <input name="theme.accent" type="color"></label>
+            <label><span data-i18n="settings.lead">Lead</span><input name="limits.lead" type="number" min="100" max="2000"></label>
+            <label><span data-i18n="settings.featured">Featured</span><input name="limits.featured" type="number" min="100" max="1500"></label>
+            <label><span data-i18n="settings.story">Story</span><input name="limits.story" type="number" min="60" max="800"></label>
+            <label><span data-i18n="settings.brief">Brief</span><input name="limits.brief" type="number" min="20" max="300"></label>
+            <label><span data-i18n="settings.video">Video</span><input name="limits.video" type="number" min="40" max="600"></label>
           </div>
         </fieldset>
 
         <fieldset>
-          <legend>Εμφάνιση φύλλου</legend>
+          <legend data-i18n="settings.appearance">Appearance</legend>
           <div class="grid">
-            <label>Θέμα
+            <label><span data-i18n="settings.paper">Paper</span><input name="theme.paper" type="color"></label>
+            <label><span data-i18n="settings.ink">Ink</span><input name="theme.ink" type="color"></label>
+            <label><span data-i18n="settings.accent">Accent</span><input name="theme.accent" type="color"></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="settings.editionAppearance">Edition appearance</legend>
+          <div class="grid">
+            <label><span data-i18n="settings.theme">Theme</span>
               <select name="theme.preset">
-                <option value="light">Light (σέπια)</option>
-                <option value="dark">Dark (νυχτερινό)</option>
-                <option value="color">Color (λευκό + χρώμα)</option>
+                <option value="light" data-i18n="settings.themeLight">Light (sepia)</option>
+                <option value="dark" data-i18n="settings.themeDark">Dark (night)</option>
+                <option value="color" data-i18n="settings.themeColor">Color (white + color)</option>
               </select>
             </label>
-            <label>Φωτογραφίες
+            <label><span data-i18n="settings.photos">Photos</span>
               <select name="theme.photos">
-                <option value="sepia">Sepia</option>
-                <option value="color">Έγχρωμες</option>
+                <option value="sepia" data-i18n="settings.photosSepia">Sepia</option>
+                <option value="color" data-i18n="settings.photosColor">Color</option>
               </select>
             </label>
-            <label>Accent <input name="theme.accent" type="color"></label>
+            <label><span data-i18n="settings.accent">Accent</span><input name="theme.accent" type="color"></label>
           </div>
-          <label style="margin-top:12px">Μέγεθος γραμματοσειρών
+          <label style="margin-top:12px"><span data-i18n="settings.fontScale">Font size</span>
             <input name="theme.font_scale" type="range" min="0.9" max="1.15" step="0.05">
             <span class="hint" id="fsValue">1.00</span>
           </label>
         </fieldset>
 
         <fieldset>
-          <legend>Γλώσσα</legend>
-          <label class="check"><input name="language.translate_english" type="checkbox"> Μετάφραση αγγλικών στα ελληνικά</label>
-          <p class="hint">Αν είναι κλειστό, τα αγγλικά θέματα μένουν αγγλικά με ένδειξη EN.</p>
+          <legend data-i18n="settings.language">Language</legend>
+          <label class="check"><input name="language.translate_english" type="checkbox"><span data-i18n="settings.translateEnglish">Translate English articles into Greek</span></label>
+          <p class="hint" data-i18n="settings.translateEnglishHint">When off, English stories stay in English with an EN badge.</p>
         </fieldset>
 
         <fieldset>
-          <legend>Google Trends (24ωρο)</legend>
-          <label class="check"><input name="trends.enabled" type="checkbox"> Σελίδες δημοφιλών αναζητήσεων</label>
+          <legend data-i18n="settings.trends">Google Trends (24h)</legend>
+          <label class="check"><input name="trends.enabled" type="checkbox"><span data-i18n="settings.trendsEnabled">Trending searches pages</span></label>
           <div class="grid" style="margin-top:10px">
-            <label>Χώρα (σελ. 2)
-              <select name="trends.country">
-                <option value="GR">Ελλάδα</option>
-                <option value="CY">Κύπρος</option>
-                <option value="GB">Ηνωμένο Βασίλειο</option>
-                <option value="US">ΗΠΑ</option>
-                <option value="DE">Γερμανία</option>
-                <option value="FR">Γαλλία</option>
-                <option value="IT">Ιταλία</option>
-                <option value="ES">Ισπανία</option>
-                <option value="PT">Πορτογαλία</option>
-                <option value="NL">Ολλανδία</option>
-                <option value="BE">Βέλγιο</option>
-                <option value="AT">Αυστρία</option>
-                <option value="CH">Ελβετία</option>
-                <option value="SE">Σουηδία</option>
-                <option value="NO">Νορβηγία</option>
-                <option value="DK">Δανία</option>
-                <option value="FI">Φινλανδία</option>
-                <option value="PL">Πολωνία</option>
-                <option value="RO">Ρουμανία</option>
-                <option value="BG">Βουλγαρία</option>
-                <option value="TR">Τουρκία</option>
-                <option value="RU">Ρωσία</option>
-                <option value="UA">Ουκρανία</option>
-                <option value="IL">Ισραήλ</option>
-                <option value="AE">Ηνωμένα Αραβικά Εμιράτα</option>
-                <option value="SA">Σαουδική Αραβία</option>
-                <option value="IN">Ινδία</option>
-                <option value="JP">Ιαπωνία</option>
-                <option value="KR">Νότια Κορέα</option>
-                <option value="AU">Αυστραλία</option>
-                <option value="CA">Καναδάς</option>
-                <option value="MX">Μεξικό</option>
-                <option value="BR">Βραζιλία</option>
-                <option value="AR">Αργεντινή</option>
-                <option value="ZA">Νότια Αφρική</option>
-                <option value="EG">Αίγυπτος</option>
+            <label><span data-i18n="settings.trendsCountry">Country (page 2)</span>
+              <select name="trends.country" id="trendsCountry">
+                <option value="GR" data-country="GR">GR</option>
+                <option value="CY" data-country="CY">CY</option>
+                <option value="GB" data-country="GB">GB</option>
+                <option value="US" data-country="US">US</option>
+                <option value="DE" data-country="DE">DE</option>
+                <option value="FR" data-country="FR">FR</option>
+                <option value="IT" data-country="IT">IT</option>
+                <option value="ES" data-country="ES">ES</option>
+                <option value="PT" data-country="PT">PT</option>
+                <option value="NL" data-country="NL">NL</option>
+                <option value="BE" data-country="BE">BE</option>
+                <option value="AT" data-country="AT">AT</option>
+                <option value="CH" data-country="CH">CH</option>
+                <option value="SE" data-country="SE">SE</option>
+                <option value="NO" data-country="NO">NO</option>
+                <option value="DK" data-country="DK">DK</option>
+                <option value="FI" data-country="FI">FI</option>
+                <option value="PL" data-country="PL">PL</option>
+                <option value="RO" data-country="RO">RO</option>
+                <option value="BG" data-country="BG">BG</option>
+                <option value="TR" data-country="TR">TR</option>
+                <option value="RU" data-country="RU">RU</option>
+                <option value="UA" data-country="UA">UA</option>
+                <option value="IL" data-country="IL">IL</option>
+                <option value="AE" data-country="AE">AE</option>
+                <option value="SA" data-country="SA">SA</option>
+                <option value="IN" data-country="IN">IN</option>
+                <option value="JP" data-country="JP">JP</option>
+                <option value="KR" data-country="KR">KR</option>
+                <option value="AU" data-country="AU">AU</option>
+                <option value="CA" data-country="CA">CA</option>
+                <option value="MX" data-country="MX">MX</option>
+                <option value="BR" data-country="BR">BR</option>
+                <option value="AR" data-country="AR">AR</option>
+                <option value="ZA" data-country="ZA">ZA</option>
+                <option value="EG" data-country="EG">EG</option>
               </select>
             </label>
-            <label>Όροι ανά σελίδα <input name="trends.per_page" type="number" min="5" max="12"></label>
+            <label><span data-i18n="settings.trendsPerPage">Terms per page</span><input name="trends.per_page" type="number" min="5" max="12"></label>
           </div>
-          <p class="hint">Σελ. 1: παγκόσμια (Google US) · Σελ. 2: η χώρα που διαλέγεις. Αν είναι κλειστό, το φύλλο μένει 20 σελίδες.</p>
+          <p class="hint" data-i18n="settings.trendsHint">Page 1: worldwide (Google US) · Page 2: the country you choose. When off, the edition stays at 20 pages.</p>
         </fieldset>
 
         <fieldset>
-          <legend>Εκτέλεση</legend>
-          <label class="check"><input name="runtime.pdf" type="checkbox"> Εξαγωγή PDF μετά από κάθε φύλλο</label>
-          <label>Φάκελος PDF
+          <legend data-i18n="settings.run">Run</legend>
+          <label class="check"><input name="runtime.pdf" type="checkbox"><span data-i18n="settings.pdfAfter">Export PDF after every edition</span></label>
+          <label><span data-i18n="settings.pdfFolder">PDF folder</span>
             <span class="pathrow">
-              <input name="runtime.pdf_dir" type="text" readonly placeholder="Προεπιλογή: δίπλα στο φύλλο">
-              <button class="btn" type="button" id="btnPdfDir">Αλλαγή…</button>
-              <button class="btn" type="button" id="btnPdfDirClear" title="Επαναφορά στην προεπιλογή">×</button>
+              <input name="runtime.pdf_dir" type="text" readonly data-i18n-placeholder="settings.pdfFolderPlaceholder" placeholder="Default: next to the edition">
+              <button class="btn" type="button" id="btnPdfDir" data-i18n="settings.change">Change…</button>
+              <button class="btn" type="button" id="btnPdfDirClear" data-i18n-title="settings.reset" title="Reset to default">×</button>
             </span>
           </label>
-          <p class="hint">Κενό = δίπλα στο φύλλο. Ισχύει για το αυτόματο PDF, το κουμπί PDF και την εκτύπωση.</p>
-          <label>Python <input name="runtime.python" type="text" placeholder="python"></label>
+          <p class="hint" data-i18n="settings.pdfHint">Empty = next to the edition. Applies to automatic PDF, the PDF button and printing.</p>
+          <label><span data-i18n="settings.python">Python</span><input name="runtime.python" type="text" placeholder="python"></label>
         </fieldset>
 
         <fieldset>
-          <legend>Αυτόματη έκδοση (Windows)</legend>
-          <label class="check"><input name="schedule.enabled" type="checkbox"> Ενεργή</label>
+          <legend data-i18n="settings.schedule">Automatic edition (Windows)</legend>
+          <label class="check"><input name="schedule.enabled" type="checkbox"><span data-i18n="settings.scheduleEnabled">Enabled</span></label>
           <div class="grid">
-            <label>Ώρα <input name="schedule.at" type="time" step="60"></label>
+            <label><span data-i18n="settings.time">Time</span><input name="schedule.at" type="time" step="60"></label>
           </div>
           <div class="row" style="margin-top:12px">
-            <button class="btn btn--primary" type="button" id="btnSchedule">Εφαρμογή στο Windows</button>
-            <button class="btn" type="button" id="btnScheduleRemove">Απενεργοποίηση</button>
+            <button class="btn btn--primary" type="button" id="btnSchedule" data-i18n="settings.applyWindows">Apply in Windows</button>
+            <button class="btn" type="button" id="btnScheduleRemove" data-i18n="settings.disable">Disable</button>
           </div>
           <p class="hint" id="scheduleHint"></p>
         </fieldset>
 
         <div class="row">
-          <button class="btn btn--primary" type="submit">Αποθήκευση</button>
+          <button class="btn btn--primary" type="submit" data-i18n="settings.save">Save</button>
           <span class="hint" id="saveHint"></span>
         </div>
       </form>
@@ -257,25 +266,31 @@
   </section>
 </main>
 
+<button class="focus-exit-pin" id="focusExitPin" type="button" hidden data-i18n-title="focus.exitTitle" title="Exit full screen (Esc)">
+  <span aria-hidden="true">✕</span><span data-i18n="focus.exit">Exit</span>
+</button>
+<div class="focus-hint" id="focusHint" hidden data-i18n="focus.hint">Press Esc or ✕ to exit full screen</div>
+
 <div class="modal" id="cleanupModal" hidden>
   <div class="modal__box">
-    <h3>Διαγραφή παλαιών φύλλων</h3>
-    <p class="hint">Το σημερινό φύλλο δεν διαγράφεται ποτέ. Τα health/settings/sites μένουν ανέπαφα. Η διαγραφή γίνεται αμέσως.</p>
+    <h3 data-i18n="cleanup.title">Delete old editions</h3>
+    <p class="hint" data-i18n="cleanup.hint">Today's edition is never deleted. Health/settings/sites stay intact. Deletion happens immediately.</p>
 
-    <label class="modal__row">Κράτα τις τελευταίες
-      <input id="keepDays" type="number" min="0" max="365" value="7"> ημέρες
+    <label class="modal__row"><span data-i18n="cleanup.keep">Keep the last</span>
+      <input id="keepDays" type="number" min="0" max="365" value="7"><span data-i18n="cleanup.days">days</span>
     </label>
-    <label class="check"><input id="cleanCache" type="checkbox" checked> Καθαρισμός cache εικόνων/άρθρων</label>
+    <label class="check"><input id="cleanCache" type="checkbox" checked><span data-i18n="cleanup.cache">Clear image/article cache</span></label>
 
-    <div class="modal__preview" id="cleanupPreview">Υπολογισμός…</div>
+    <div class="modal__preview" id="cleanupPreview">Calculating…</div>
 
     <div class="modal__actions">
-      <button class="btn" id="cleanupCancel" type="button">Άκυρο</button>
-      <button class="btn btn--danger" id="cleanupRun" type="button" disabled>Διαγραφή</button>
+      <button class="btn" id="cleanupCancel" type="button" data-i18n="common.cancel">Cancel</button>
+      <button class="btn btn--danger" id="cleanupRun" type="button" disabled data-i18n="common.delete">Delete</button>
     </div>
   </div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="renderer.js"></script>
 </body>
 </html>

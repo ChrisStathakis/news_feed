@@ -81,7 +81,7 @@
     <span class="section-head__paper">{{ edition_name }}</span>
     <span class="section-head__date">{{ date_short }}</span>
   </div>
-  <h2 class="section-title">{{ p.label_el }}<span>/ {{ p.label_en }}</span></h2>
+  <h2 class="section-title{% if p.label_el|length > 18 %} section-title--long{% endif %}">{{ p.label_el }}{% if p.label_en and p.label_en != p.label_el %}<span>/ {{ p.label_en }}</span>{% endif %}</h2>
   <div class="section-head__page">ΣΕΛ. {{ p.num }}<em>/{{ total_pages }}</em></div>
 </header>
 {% endmacro %}

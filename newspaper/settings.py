@@ -34,15 +34,6 @@ DEFAULTS: dict[str, Any] = {
         "name_en": "THE DAILY",
         "tagline": "Καθημερινή εφημερίδα · Επιμέλεια αρχείου",
     },
-    "sections": [
-        {"key": "news",     "el": "ΕΙΔΗΣΕΙΣ",            "en": "NEWS",          "pages": 3},
-        {"key": "politics", "el": "ΠΟΛΙΤΙΚΗ",            "en": "POLITICS",      "pages": 2},
-        {"key": "sports",   "el": "ΑΘΛΗΤΙΚΑ",            "en": "SPORTS",        "pages": 3},
-        {"key": "economy",  "el": "ΟΙΚΟΝΟΜΙΑ",           "en": "ECONOMY",       "pages": 3},
-        {"key": "tech",     "el": "ΤΕΧΝΟΛΟΓΙΑ & GAMING", "en": "TECH & GAMING", "pages": 2},
-        {"key": "culture",  "el": "ΠΟΛΙΤΙΣΜΟΣ",          "en": "CULTURE",       "pages": 2},
-        {"key": "video",    "el": "ΒΙΝΤΕΟ & ΚΑΝΑΛΙΑ",    "en": "VIDEO",         "pages": 2},
-    ],
     "layout": {
         "cover_secondary": 3,
         "first_page": 7,
@@ -132,6 +123,10 @@ def load(force: bool = False) -> dict[str, Any]:
 
     merged = _merge(DEFAULTS, data)
 
+    # Οι θεματικές κατηγορίες αντικαταστάθηκαν από ενότητες πηγών.
+    # Το παλιό κλειδί αγνοείται και φεύγει στο επόμενο save.
+    merged.pop("sections", None)
+
     # env overrides (χρήσιμο για CI / δοκιμές)
     if os.environ.get("HMERISIA_PAGES"):
         pass  # οι σελίδες ορίζονται ανά ενότητα
@@ -155,6 +150,8 @@ def get(path: str, default: Any = None) -> Any:
 
 def save(data: dict[str, Any]) -> dict[str, Any]:
     """Γράφει ολόκληρο το settings.json (merge με τα defaults)."""
+    data = dict(data or {})
+    data.pop("sections", None)
     merged = _merge(DEFAULTS, data)
     SETTINGS_FILE.write_text(
         json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -172,9 +169,11 @@ def ensure() -> Path:
     return SETTINGS_FILE
 
 
-def total_pages(data: dict[str, Any] | None = None) -> int:
+def total_pages(sections: list[dict] | None = None,
+                data: dict[str, Any] | None = None) -> int:
+    """Σύνολο σελίδων: εξώφυλλο + ενότητες + σύντομα/πηγές + trends."""
     data = data or load()
-    sections = data.get("sections") or []
     trends = data.get("trends") or {}
     extra = 2 if trends.get("enabled", True) else 0
-    return 1 + sum(int(s.get("pages", 1)) for s in sections) + 2 + extra
+    pages = sum(max(0, int(s.get("pages", 1))) for s in (sections or []))
+    return 1 + pages + 2 + extra

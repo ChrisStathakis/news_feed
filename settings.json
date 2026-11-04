@@ -4,50 +4,6 @@
     "name_en": "THE DAILY",
     "tagline": "Καθημερινή εφημερίδα · Επιμέλεια αρχείου"
   },
-  "sections": [
-    {
-      "key": "news",
-      "el": "ΕΙΔΗΣΕΙΣ",
-      "en": "NEWS",
-      "pages": 3
-    },
-    {
-      "key": "politics",
-      "el": "ΠΟΛΙΤΙΚΗ",
-      "en": "POLITICS",
-      "pages": 2
-    },
-    {
-      "key": "sports",
-      "el": "ΑΘΛΗΤΙΚΑ",
-      "en": "SPORTS",
-      "pages": 3
-    },
-    {
-      "key": "economy",
-      "el": "ΟΙΚΟΝΟΜΙΑ",
-      "en": "ECONOMY",
-      "pages": 3
-    },
-    {
-      "key": "tech",
-      "el": "ΤΕΧΝΟΛΟΓΙΑ & GAMING",
-      "en": "TECH & GAMING",
-      "pages": 2
-    },
-    {
-      "key": "culture",
-      "el": "ΠΟΛΙΤΙΣΜΟΣ",
-      "en": "CULTURE",
-      "pages": 2
-    },
-    {
-      "key": "video",
-      "el": "ΒΙΝΤΕΟ & ΚΑΝΑΛΙΑ",
-      "en": "VIDEO",
-      "pages": 2
-    }
-  ],
   "layout": {
     "cover_secondary": 3,
     "first_page": 7,

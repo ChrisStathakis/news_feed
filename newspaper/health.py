@@ -69,12 +69,25 @@ def is_quarantined(entry: dict) -> bool:
     return datetime.now(timezone.utc) - last_ok < timedelta(hours=QUARANTINE_HOURS)
 
 
-def status_rows(items_by_source: dict[str, int] | None = None) -> list[dict]:
-    """Λίστα για το πλαίσιο «ΚΑΤΑΣΤΑΣΗ ΠΗΓΩΝ» του PDF."""
+def status_rows(items_by_source: dict[str, int] | None = None,
+                order: list[str] | None = None) -> list[dict]:
+    """Λίστα για το πλαίσιο «ΚΑΤΑΣΤΑΣΗ ΠΗΓΩΝ» του PDF.
+
+    Αν δοθεί ``order``, ακολουθεί τη σειρά των ενοτήτων και συμπληρώνει
+    πηγές που δεν έχουν ακόμη health entry.
+    """
     data = load()
+    if order is not None:
+        names = list(dict.fromkeys(order))
+    else:
+        names = [name for name, _ in sorted(
+            data.items(), key=lambda kv: (-kv[1].get("items", 0), kv[0])
+        )]
+
     rows = []
-    for name, entry in sorted(data.items(), key=lambda kv: (-kv[1].get("items", 0), kv[0])):
-        status = entry.get("status", "ok")
+    for name in names:
+        entry = data.get(name) or {}
+        status = entry.get("status", "unknown")
         if status == "broken" and not is_quarantined(entry):
             status = "degraded"
         last_ok = entry.get("last_ok")
